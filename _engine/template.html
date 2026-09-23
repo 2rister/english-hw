@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --violet:#6C3CE9;--violet-deep:#3B1C8C;--ink:#1B1530;--ink-2:#4A4263;
+  --lav:#F4EFFF;--lav-2:#E7DDFF;--lav-3:#CDB9FF;
+  --coral:#FF7A59;--coral-deep:#D9502F;--coral-soft:#FFE3DA;
+  --mint:#22B8A0;--mint-deep:#128571;--mint-soft:#D6F5EF;
+  --sun:#FFC93C;--sun-soft:#FFF2CC;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;--body:'Nunito',system-ui,sans-serif;
+  --r:16px;--ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--body);color:var(--ink);background:var(--lav);font-size:17px;line-height:1.45;font-weight:700}
+::selection{background:var(--sun)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 18px calc(18px + env(safe-area-inset-bottom))}
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;padding:18px 0 10px;position:sticky;top:0;background:var(--lav);z-index:5}
+.bar{flex:1;height:14px;background:var(--lav-2);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--violet);border-radius:99px;transition:width .6s var(--ease);box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
+.part{font:800 13px var(--body);color:var(--violet);white-space:nowrap}
+.hidden{display:none!important}
+main{flex:1;display:flex;flex-direction:column}
+h1{font-family:var(--display);font-weight:800;letter-spacing:-0.025em;line-height:1.02}
+h2{font-family:var(--display);font-weight:800;letter-spacing:-0.02em;font-size:25px;line-height:1.12;margin:6px 0 14px;color:var(--violet-deep)}
+.muted{color:var(--ink-2);font-weight:700}
+/* buttons */
+.btn{display:block;width:100%;padding:16px 20px;border-radius:var(--r);font:900 17px var(--body);letter-spacing:.02em;text-transform:uppercase;background:var(--violet);color:#fff;box-shadow:0 4px 0 var(--violet-deep);transition:transform .12s,box-shadow .12s,background .2s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--violet-deep)}
+.btn[disabled]{background:#DAD3EA;color:#8C84A3;box-shadow:0 4px 0 #C4BCD8;cursor:not-allowed}
+.btn.ok{background:var(--mint);box-shadow:0 4px 0 var(--mint-deep)}
+.btn.no{background:var(--coral);box-shadow:0 4px 0 var(--coral-deep)}
+.foot{padding-top:16px;margin-top:auto}
+/* welcome */
+.hero{border-radius:24px;overflow:hidden;margin:6px 0 18px;box-shadow:0 18px 40px -20px rgba(59,28,140,.6);background:#fff}
+.hero img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover}
+.welcome h1{font-size:40px;color:var(--violet-deep)}
+.welcome h1 em{font-style:normal;color:var(--coral)}
+.welcome p{margin:8px 0 18px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.name{padding:14px 12px;border-radius:14px;background:#fff;border:2px solid var(--lav-2);font-weight:800;text-align:left;box-shadow:0 3px 0 var(--lav-2);transition:border-color .2s,background .2s}
+.name.sel{border-color:var(--violet);background:var(--lav-2);box-shadow:0 3px 0 var(--violet)}
+.other{width:100%;padding:14px;border-radius:14px;border:2px solid var(--lav-3);font:800 17px var(--body);margin-bottom:6px;background:#fff;color:var(--ink)}
+/* question card */
+.pic{border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 14px 34px -18px rgba(59,28,140,.55);margin-bottom:16px}
+.pic img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;max-height:42vh}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{padding:15px 12px;border-radius:14px;background:#fff;border:2px solid var(--lav-2);box-shadow:0 3px 0 var(--lav-2);font-weight:800;font-size:16.5px;min-height:62px;transition:border-color .15s,background .15s}
+.opt.sel{border-color:var(--violet);background:var(--lav-2);box-shadow:0 3px 0 var(--violet)}
+.opt.right{border-color:var(--mint);background:var(--mint-soft);box-shadow:0 3px 0 var(--mint)}
+.opt.wrong{border-color:var(--coral);background:var(--coral-soft);box-shadow:0 3px 0 var(--coral)}
+/* spelling */
+.phrase{text-align:center;font:800 20px var(--body);margin:0 0 12px;color:var(--ink-2)}
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:18px}
+.slot{width:38px;height:46px;border-radius:10px;background:#fff;border:2px solid var(--lav-3);display:flex;align-items:center;justify-content:center;font:800 24px var(--display);color:var(--violet-deep);text-transform:lowercase;transition:transform .2s var(--ease),border-color .2s}
+.slot.filled{border-color:var(--violet);transform:translateY(-2px)}
+.slots.right .slot{border-color:var(--mint);background:var(--mint-soft)}
+.slots.wrong .slot{border-color:var(--coral);background:var(--coral-soft)}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.tile{width:46px;height:50px;border-radius:12px;background:#fff;border:2px solid var(--lav-2);box-shadow:0 4px 0 var(--lav-3);font:800 24px var(--display);color:var(--ink);text-transform:lowercase;transition:transform .12s,opacity .2s}
+.tile:active{transform:translateY(3px);box-shadow:0 1px 0 var(--lav-3)}
+.tile.used{opacity:.18;pointer-events:none;box-shadow:none}
+/* match */
+.pairs{display:grid;grid-template-columns:1fr 1.35fr;gap:10px}
+.pairs .col{display:flex;flex-direction:column;gap:10px}
+.pr{padding:12px;border-radius:14px;background:#fff;border:2px solid var(--lav-2);box-shadow:0 3px 0 var(--lav-2);font-weight:800;font-size:15px;text-align:left;min-height:58px;transition:all .2s}
+.pr.sel{border-color:var(--violet);background:var(--lav-2)}
+.pr.done{border-color:var(--mint);background:var(--mint-soft);color:var(--mint-deep);box-shadow:none;pointer-events:none;opacity:.75}
+.pr.shake{animation:shake .35s;border-color:var(--coral);background:var(--coral-soft)}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+/* type */
+.sent{background:#fff;border-radius:20px;padding:22px 20px;font-size:21px;line-height:1.7;box-shadow:0 14px 34px -20px rgba(59,28,140,.5);margin-bottom:14px}
+.sent input{font:800 21px var(--body);color:var(--violet-deep);border:0;border-bottom:3px solid var(--violet);width:9ch;padding:0 4px;background:var(--lav);border-radius:6px 6px 0 0}
+.sent input.right{border-color:var(--mint);background:var(--mint-soft);color:var(--mint-deep)}
+.sent input.wrong{border-color:var(--coral);background:var(--coral-soft);color:var(--coral-deep)}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin-bottom:14px}
+/* feedback sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .45s var(--ease);z-index:20}
+.sheet.show{transform:none}
+.sheet .in{max-width:560px;margin:0 auto}
+.sheet.good{background:var(--mint-soft)}.sheet.bad{background:var(--coral-soft)}
+.sheet h3{font:800 22px var(--display);margin-bottom:4px}
+.sheet.good h3{color:var(--mint-deep)}.sheet.bad h3{color:var(--coral-deep)}
+.sheet p{margin-bottom:14px;font-weight:800}
+/* intro cards */
+.intro{text-align:left;padding-top:10vh}
+.intro .tag{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:20px;background:var(--violet);color:#fff;font:800 30px var(--display);margin-bottom:18px;box-shadow:0 6px 0 var(--violet-deep)}
+.intro h1{font-size:34px;color:var(--violet-deep);margin-bottom:10px}
+/* result */
+.score{font:800 72px var(--display);color:var(--violet);letter-spacing:-0.04em;line-height:1}
+.score small{font-size:30px;color:var(--ink-2)}
+.rows{margin:18px 0;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;justify-content:space-between;background:#fff;border-radius:14px;padding:13px 16px}
+.row b{font-family:var(--display);color:var(--violet-deep)}
+.status{margin-top:12px;text-align:center;font-weight:800;color:var(--ink-2);min-height:24px}
+.status.err{color:var(--coral-deep)}
+/* mission */
+.mission h1{font-size:36px;color:var(--violet-deep);margin:4px 0 8px}
+.mission h1 em{font-style:normal;color:var(--coral)}
+.block{background:#fff;border-radius:20px;padding:18px;margin:12px 0;box-shadow:0 10px 26px -20px rgba(59,28,140,.6)}
+.block h3{font:800 19px var(--display);color:var(--violet-deep);margin-bottom:8px}
+.block p,.block li{font-size:16px;font-weight:700}
+.block ol{padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.check{display:flex;flex-direction:column;gap:8px}
+.check label{display:flex;gap:10px;align-items:flex-start;font-size:16px;cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--violet);flex:none;margin-top:1px}
+.ru{display:block;color:var(--ink-2);font-size:13.5px;font-weight:700;margin-top:2px}
+.phr{display:flex;flex-wrap:wrap;gap:8px}
+.phr span{background:var(--sun-soft);border-radius:99px;padding:6px 12px;font-size:14.5px;font-weight:800}
+.model{background:var(--lav);border-radius:14px;padding:14px;font-size:15.5px;line-height:1.6}
+.model mark{background:transparent;color:inherit;transition:background .3s}
+.model.reveal mark{background:var(--coral-soft);color:var(--coral-deep);border-radius:4px}
+.link{color:var(--violet);font-weight:900;text-decoration:underline;text-underline-offset:3px;margin-top:10px;display:inline-block}
+.dark{background:var(--violet-deep);color:#fff}
+.dark h3{color:var(--sun)}
+.fade{animation:fade .5s var(--ease)}
+@keyframes fade{from{opacity:.001;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top hidden" id="top"><div class="bar"><i id="bar"></i></div><span class="part" id="partLbl"></span></div>
+  <main id="main"></main>
+</div>
+<div class="sheet" id="sheet"><div class="in"><h3 id="shT"></h3><p id="shP"></p><button class="btn" id="shB">Continue</button></div></div>
+
+<script>
+const CFG = __CONFIG__;
+const IMG = __IMAGES__;
+const ENDPOINT = '__ENDPOINT__'; // Apps Script /exec URL (empty = send via Telegram share)
+const STUDENTS = CFG.students;
+
+/* ---------- задания приходят из CFG (ключи перепроверяет сервер) ---------- */
+const MC = CFG.mc;
+const SP = CFG.sp;
+const PAIRS = CFG.pairs;
+const TY = CFG.ty;
+const PREP = CFG.prep;
+
+const TOTAL_STEPS = MC.length + SP.length + 1 + TY.length + PREP.length;
+const S = {name:'', t0:0, step:0, mc:[], sp:[], pairsMistakes:0, ty:[], prep:[]};
+const $ = s => document.querySelector(s);
+const main = $('#main');
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+
+function progress(label){
+  $('#top').classList.remove('hidden');
+  $('#bar').style.width = Math.round(S.step / TOTAL_STEPS * 100) + '%';
+  $('#partLbl').textContent = label;
+}
+function view(html){ main.innerHTML = '<div class="fade" style="display:flex;flex-direction:column;flex:1">'+html+'</div>'; window.scrollTo(0,0); }
+function sheet(good, title, text, next){
+  const sh = $('#sheet');
+  sh.className = 'sheet show ' + (good ? 'good' : 'bad');
+  $('#shT').textContent = title; $('#shP').innerHTML = text || '';
+  const b = $('#shB'); b.className = 'btn ' + (good ? 'ok' : 'no');
+  b.onclick = () => { sh.className = 'sheet'; next(); };
+  setTimeout(()=>b.focus(), 50);
+}
+const PRAISE = ['Great!','Nice one!','Perfect!','Well done!','Yes!','Brilliant!'];
+const praise = () => PRAISE[Math.floor(Math.random()*PRAISE.length)];
+
+/* ---------- welcome ---------- */
+function welcome(){
+  view(`
+    <section class="welcome">
+      <div class="hero"><img src="${IMG.cover}" alt=""></div>
+      <h1>${CFG.title} <em>${CFG.titleAccent}</em></h1>
+      <p class="muted">${CFG.subtitle}</p>
+      <h2>Who are you?</h2>
+      <div class="names">${STUDENTS.map(n=>`<button class="name" data-n="${esc(n)}">${esc(n)}</button>`).join('')}<button class="name" data-n="__other">Другой</button></div>
+      <input class="other hidden" id="other" placeholder="Имя и фамилия" autocomplete="name">
+    </section>
+    <div class="foot"><button class="btn" id="go" disabled>Start</button></div>`);
+  const go = $('#go'), other = $('#other');
+  main.querySelectorAll('.name').forEach(b => b.onclick = () => {
+    main.querySelectorAll('.name').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+    if (b.dataset.n === '__other'){ other.classList.remove('hidden'); other.focus(); S.name=''; go.disabled = !other.value.trim(); }
+    else { other.classList.add('hidden'); S.name = b.dataset.n; go.disabled = false; }
+  });
+  other.oninput = () => { S.name = other.value.trim(); go.disabled = !S.name; };
+  go.onclick = () => { S.t0 = Date.now(); intro(1, CFG.intros[0].t, CFG.intros[0].d, ()=>mc(0)); };
+}
+function intro(n, title, text, next){
+  $('#top').classList.add('hidden');
+  view(`<section class="intro"><span class="tag">${n}</span><h1>${title}</h1><p class="muted">${text}</p></section><div class="foot"><button class="btn" id="n">Let's go</button></div>`);
+  $('#n').onclick = next;
+}
+
+/* ---------- part 1: picture multiple choice ---------- */
+function mc(i){
+  if (i >= MC.length) return intro(2, CFG.intros[1].t, CFG.intros[1].d, ()=>sp(0));
+  progress('Part 1 · ' + (i+1) + '/' + MC.length);
+  const q = MC[i], opts = shuffle(q.o);
+  view(`<h2>${CFG.labels.mc}</h2><div class="pic"><img src="${IMG[q.img]}" alt=""></div>
+    <div class="opts">${opts.map(o=>`<button class="opt">${esc(o)}</button>`).join('')}</div>
+    <div class="foot"><button class="btn" id="chk" disabled>Check</button></div>`);
+  let pick = null;
+  const bs = main.querySelectorAll('.opt');
+  bs.forEach(b => b.onclick = () => { bs.forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); pick = b.textContent; $('#chk').disabled = false; });
+  $('#chk').onclick = () => {
+    S.mc[i] = pick; S.step++;
+    const ok = pick === q.a;
+    bs.forEach(b => { b.disabled = true; if (b.textContent === q.a) b.classList.add('right'); else if (b.textContent === pick) b.classList.add('wrong'); });
+    $('#chk').classList.add('hidden');
+    sheet(ok, ok ? praise() : 'Not quite', (ok ? '' : 'Correct answer: <b>' + esc(q.a) + '</b><br>') + esc(q.f), () => mc(i+1));
+  };
+}
+
+/* ---------- part 2: spelling with letter tiles ---------- */
+function sp(i){
+  if (i >= SP.length) return intro(3, CFG.intros[2].t, CFG.intros[2].d, pairs);
+  progress('Part 2 · ' + (i+1) + '/' + SP.length);
+  const q = SP[i], letters = shuffle((q.w + q.x).split(''));
+  view(`<h2>Spell the word</h2><div class="pic"><img src="${IMG[q.img]}" alt=""></div>
+    <p class="phrase">${esc(q.pre)} <span style="color:var(--violet)">…</span> ${q.post?esc(q.post):''}</p>
+    <div class="slots" id="slots">${q.w.split('').map(()=>'<div class="slot"></div>').join('')}</div>
+    <div class="tiles" id="tiles">${letters.map((l,k)=>`<button class="tile" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="foot"><button class="btn" id="chk" disabled>Check</button></div>`);
+  const slots = [...main.querySelectorAll('.slot')], tiles = [...main.querySelectorAll('.tile')];
+  const fill = []; // tile indexes in slot order
+  const draw = () => {
+    slots.forEach((s,k) => { const t = fill[k]; s.textContent = t==null ? '' : letters[t]; s.classList.toggle('filled', t!=null); });
+    tiles.forEach(t => t.classList.toggle('used', fill.includes(+t.dataset.k)));
+    $('#chk').disabled = fill.filter(x=>x!=null).length !== q.w.length;
+  };
+  tiles.forEach(t => t.onclick = () => { const k = +t.dataset.k; const free = slots.findIndex((_,j)=>fill[j]==null); if (free>-1){ fill[free]=k; draw(); } });
+  slots.forEach((s,j) => s.onclick = () => { if (fill[j]!=null){ fill[j]=null; draw(); } });
+  $('#chk').onclick = () => {
+    const word = fill.map(k=>letters[k]).join('');
+    S.sp[i] = word; S.step++;
+    const ok = word === q.w;
+    $('#slots').classList.add(ok ? 'right' : 'wrong');
+    tiles.forEach(t=>t.disabled=true); slots.forEach(s=>s.onclick=null);
+    $('#chk').classList.add('hidden');
+    sheet(ok, ok ? praise() : 'Almost!', ok ? '<b>' + esc(q.pre + ' ' + q.w) + '</b>' : 'It\'s spelled <b>' + esc(q.w) + '</b>. Say it: ' + esc(q.pre + ' ' + q.w), () => sp(i+1));
+  };
+}
+
+/* ---------- part 3a: match pairs ---------- */
+function pairs(){
+  progress('Part 3 · pairs');
+  const L = shuffle(PAIRS.map((p,k)=>({k,t:p[0]}))), R = shuffle(PAIRS.map((p,k)=>({k,t:p[1]})));
+  view(`<h2>Match the pairs</h2>
+    <div class="pairs"><div class="col">${L.map(x=>`<button class="pr" data-k="${x.k}" data-s="L">${esc(x.t)}</button>`).join('')}</div>
+    <div class="col">${R.map(x=>`<button class="pr" data-k="${x.k}" data-s="R">${esc(x.t)}</button>`).join('')}</div></div>
+    <div class="foot"><p class="muted" style="text-align:center">Tap a word, then its meaning.</p></div>`);
+  let sel = {L:null, R:null}, done = 0;
+  main.querySelectorAll('.pr').forEach(b => b.onclick = () => {
+    const side = b.dataset.s;
+    if (sel[side]) sel[side].classList.remove('sel');
+    sel[side] = b; b.classList.add('sel');
+    if (sel.L && sel.R){
+      const a = sel.L, c = sel.R; sel = {L:null, R:null};
+      if (a.dataset.k === c.dataset.k){ a.className = c.className = 'pr done'; done++;
+        if (done === PAIRS.length){ S.step++; sheet(true, S.pairsMistakes === 0 ? 'All pairs, no mistakes!' : 'All matched!', 'Mistakes: ' + S.pairsMistakes, () => ty(0)); }
+      } else { S.pairsMistakes++; [a,c].forEach(x=>{ x.classList.remove('sel'); x.classList.add('shake'); setTimeout(()=>x.classList.remove('shake'),400); }); }
+    }
+  });
+}
+
+/* ---------- part 3b: type the missing word ---------- */
+function ty(i){
+  if (i >= TY.length) return intro(4, CFG.intros[3].t, CFG.intros[3].d, ()=>prep(0));
+  progress('Part 3 · ' + (i+1) + '/' + TY.length);
+  const q = TY[i];
+  const field = `<input id="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${q.h}…" aria-label="missing word">`;
+  const sentence = q.s.includes('___') ? esc(q.s).replace('___', field) : esc(q.s) + ' ' + field + '.';
+  view(`<h2>Write the missing word</h2>${q.img?`<img class="thumb" src="${IMG[q.img]}" alt="">`:''}
+    <div class="sent">${sentence}</div><p class="muted">It starts with <b style="color:var(--violet)">${q.h}</b>.</p>
+    <div class="foot"><button class="btn" id="chk" disabled>Check</button></div>`);
+  const inp = $('#inp'); inp.style.width = Math.max(7, q.a.length + 2) + 'ch'; setTimeout(()=>inp.focus(), 80);
+  inp.oninput = () => $('#chk').disabled = !inp.value.trim();
+  inp.onkeydown = e => { if (e.key === 'Enter' && inp.value.trim()) $('#chk').click(); };
+  $('#chk').onclick = () => {
+    const v = inp.value; S.ty[i] = v; S.step++;
+    const ok = norm(v) === q.a;
+    inp.classList.add(ok ? 'right' : 'wrong'); inp.disabled = true;
+    $('#chk').classList.add('hidden');
+    sheet(ok, ok ? praise() : 'Not quite', ok ? '' : 'Correct answer: <b>' + esc(q.a) + '</b>', () => ty(i+1));
+  };
+}
+
+/* ---------- part 4 (B1+): prepositions of place ---------- */
+function prep(i){
+  if (i >= PREP.length) return finish();
+  progress('Part 4 · B1+ · ' + (i+1) + '/' + PREP.length);
+  const q = PREP[i];
+  view(`<h2>${CFG.labels.prep}</h2>
+    <div class="sent">${esc(q.s).replace('___','<b style="color:var(--violet)">___</b>')}</div>
+    <div class="opts">${q.o.map(o=>`<button class="opt">${esc(o)}</button>`).join('')}</div>
+    <div class="foot"><button class="btn" id="chk" disabled>Check</button></div>`);
+  let pick = null;
+  const bs = main.querySelectorAll('.opt');
+  bs.forEach(b => b.onclick = () => { bs.forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); pick = b.textContent; $('#chk').disabled = false; });
+  $('#chk').onclick = () => {
+    S.prep[i] = pick; S.step++;
+    const ok = pick === q.a;
+    bs.forEach(b => { b.disabled = true; if (b.textContent === q.a) b.classList.add('right'); else if (b.textContent === pick) b.classList.add('wrong'); });
+    $('#chk').classList.add('hidden');
+    sheet(ok, ok ? praise() : 'Not quite', (ok ? '' : 'Correct answer: <b>' + esc(q.a) + '</b><br>') + esc(q.f), () => prep(i+1));
+  };
+}
+
+/* ---------- finish + send ---------- */
+function localScore(){
+  const mc = MC.filter((q,i)=>S.mc[i]===q.a).length;
+  const sp = SP.filter((q,i)=>S.sp[i]===q.w).length;
+  const pr = Math.max(0, PAIRS.length - S.pairsMistakes);
+  const ty = TY.filter((q,i)=>norm(S.ty[i])===q.a).length;
+  const pp = PREP.filter((q,i)=>S.prep[i]===q.a).length;
+  return {mc, sp, pr, ty, pp, total: mc+sp+pr+ty+pp, max: MC.length+SP.length+PAIRS.length+TY.length+PREP.length};
+}
+function finish(){
+  S.step = TOTAL_STEPS; progress('Done');
+  const r = localScore();
+  view(`<h2>Well done, ${esc(S.name)}!</h2>
+    <div class="score">${r.total}<small> / ${r.max}</small></div>
+    <div class="rows">
+      <div class="row"><span>Picture quiz</span><b>${r.mc} / ${MC.length}</b></div>
+      <div class="row"><span>Spelling game</span><b>${r.sp} / ${SP.length}</b></div>
+      <div class="row"><span>Match the pairs</span><b>${r.pr} / ${PAIRS.length}</b></div>
+      <div class="row"><span>Missing words</span><b>${r.ty} / ${TY.length}</b></div>
+      <div class="row"><span>${CFG.labels.prepShort}</span><b>${r.pp} / ${PREP.length}</b></div>
+    </div>
+    <div class="foot"><button class="btn" id="send">Next: send & get my mission</button><p class="status" id="st"></p></div>`);
+  $('#send').onclick = send;
+}
+function report(){
+  const r = localScore();
+  const wrong = [];
+  MC.forEach((q,i)=>{ if(S.mc[i]!==q.a) wrong.push(q.a+' → '+(S.mc[i]||'—')); });
+  SP.forEach((q,i)=>{ if(S.sp[i]!==q.w) wrong.push(q.pre+' '+q.w+' → '+(S.sp[i]||'—')); });
+  TY.forEach((q,i)=>{ if(norm(S.ty[i])!==q.a) wrong.push(q.a+' → '+(S.ty[i]||'—')); });
+  PREP.forEach((q,i)=>{ if(S.prep[i]!==q.a) wrong.push(q.a+' → '+(S.prep[i]||'—')); });
+  const pct = Math.round(r.total/r.max*100);
+  return [CFG.reportTitle, S.name, 'Итого: '+r.total+'/'+r.max+' ('+pct+'%)',
+    'Картинки '+r.mc+'/'+MC.length+' · Спеллинг '+r.sp+'/'+SP.length+' · Пары '+r.pr+'/'+PAIRS.length+' · Слова '+r.ty+'/'+TY.length+' · '+CFG.labels.prepShort+' '+r.pp+'/'+PREP.length,
+    wrong.length ? 'Ошибки:\n'+wrong.join('\n') : 'Без ошибок!',
+    'Время: '+Math.max(1,Math.round((Date.now()-S.t0)/60000))+' мин'].join('\n');
+}
+function send(){
+  const btn = $('#send'), st = $('#st');
+  btn.disabled = true; st.className = 'status'; st.textContent = 'Sending to your teacher…';
+  const payload = {unit: CFG.unit, name:S.name, mc:S.mc, sp:S.sp, pairsMistakes:S.pairsMistakes, ty:S.ty, prep:S.prep, seconds:Math.round((Date.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120)};
+  const ok = () => mission();
+  const fail = e => { btn.disabled = false; btn.textContent = 'Try again'; st.className = 'status err'; st.textContent = 'Could not send. Check the internet and tap “Try again”. (' + (e && e.message ? e.message : e) + ')'; };
+  if (!ENDPOINT && typeof google !== 'undefined' && google.script && google.script.run){
+    google.script.run.withSuccessHandler(ok).withFailureHandler(fail).submit(payload);
+  } else if (ENDPOINT){ // file shared in the chat → Apps Script doPost → Telegram
+    st.textContent = 'Sending to your teacher… (up to 10 seconds)';
+    fetch(ENDPOINT, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)})
+      .then(ok).catch(() => shareFallback(ok)); // no-cors: the request arrives, the answer is hidden by the browser
+  } else shareFallback(ok);
+}
+function shareFallback(ok){ // no server: the student sends the report to the teacher in Telegram
+  {
+    const url = 'https://t.me/share/url?url=' + encodeURIComponent(' ') + '&text=' + encodeURIComponent(report());
+    view(`<h2>Send your result to the teacher</h2>
+      <p class="muted" style="margin-bottom:16px">Tap the button → Telegram opens → choose <b>your teacher</b> → Send. Then come back here for your mission.</p>
+      <div class="block" style="white-space:pre-line;font-size:14.5px;background:#fff;border-radius:18px;padding:16px">${esc(report())}</div>
+      <div class="foot" style="display:flex;flex-direction:column;gap:12px">
+        <a class="btn" id="tg" href="${url}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Send to teacher in Telegram</a>
+        <button class="btn ok" id="next" disabled>I sent it → my mission</button></div>`);
+    $('#tg').onclick = () => { setTimeout(()=>{ $('#next').disabled = false; }, 1200); };
+    $('#next').onclick = ok;
+  }
+}
+
+/* ---------- speaking mission ---------- */
+function mission(){
+  $('#top').classList.add('hidden');
+  const M = CFG.mission;
+  const block = (b) => {
+    if (b.check) return `<div class="block"><h3>${b.h}</h3><div class="check">${
+      b.check.map(c=>`<label><input type="checkbox"><span>${c.t}${c.ru?`<span class="ru">${c.ru}</span>`:''}</span></label>`).join('')}</div></div>`;
+    if (b.ol) return `<div class="block"><h3>${b.h}</h3><ol>${b.ol.map(x=>`<li>${x}</li>`).join('')}</ol>${
+      b.ru?`<span class="ru">${b.ru}</span>`:''}</div>`;
+    if (b.phrases) return `<div class="block"><h3>${b.h}</h3><div class="phr">${
+      b.phrases.map(x=>`<span>${x}</span>`).join('')}</div></div>`;
+    if (b.model) return `<div class="block"><h3>${b.h}</h3><div class="model" id="model">${b.model}</div>
+      <button class="link" id="rev">${b.revealLabel||'Show the answer'}</button></div>`;
+    return `<div class="block${b.dark?' dark':''}"><h3>${b.h}</h3><p>${b.p}</p>${
+      b.ru?`<span class="ru"${b.dark?' style="color:var(--lav-3)"':''}>${b.ru}</span>`:''}</div>`;
+  };
+  view(`<section class="mission">
+    <div class="hero"><img src="${IMG.hero}" alt=""></div>
+    <h1>${M.h1}<br><em>${M.h1accent}</em></h1>
+    <p class="muted">${M.intro}</p>
+    ${M.blocks.map(block).join('')}
+  </section>`);
+  const rev = $('#rev');
+  if (rev) rev.onclick = () => { $('#model').classList.toggle('reveal');
+    rev.textContent = $('#model').classList.contains('reveal') ? (M.hideLabel||'Hide') : (M.revealLabel||'Show the answer'); };
+}
+
+if (window.__PROBE) { S.name='ПРОВЕРКА ССЫЛКИ'; S.t0=Date.now(); S.mc=MC.map(q=>q.a); S.sp=SP.map(q=>q.w); S.pairsMistakes=0; S.ty=TY.map(q=>q.a); S.prep=PREP.map(q=>q.a); finish(); } else welcome();
+</script>
+</body></html>

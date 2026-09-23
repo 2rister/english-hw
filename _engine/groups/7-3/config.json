@@ -1,0 +1,408 @@
+{
+ "notes": "Новая группа: скопируй этот файл, поменяй group / students / unit. Остальное можно не трогать.",
+ "unit": "u1p",
+ "group": "7.3",
+ "students": [
+  "София Б.",
+  "Арина Б.",
+  "Мария Г.",
+  "Лев Д.",
+  "София Е.",
+  "Максим М.",
+  "Лера М."
+ ],
+ "title": "Places",
+ "titleAccent": "in Town",
+ "subtitle": "Homework · Gateway A2, Unit 1 · группа 7.3. About 20 minutes. Блок 4 — уровень B1+. В конце получаешь устное задание.",
+ "reportTitle": "ДЗ Gateway A2 U1 «Places in Town» · группа 7.3",
+ "labels": {
+  "mc": "Where is this?",
+  "prep": "Choose the right preposition",
+  "prepShort": "Prepositions · B1+"
+ },
+ "intros": [
+  {
+   "t": "Places quiz",
+   "d": "Where are you? Look at the picture and choose the right place."
+  },
+  {
+   "t": "Spelling game · B1+",
+   "d": "Look at the picture. Tap the letters in the right order. There are two extra letters!"
+  },
+  {
+   "t": "More places · B1+",
+   "d": "First match the pairs, then write the missing words."
+  },
+  {
+   "t": "Prepositions of time · B1+",
+   "d": "Последний блок, самый сложный. Когда именно: at, on, in — и их друзья by, until, since, for, during."
+  }
+ ],
+ "images": {
+  "cover": "theme_park",
+  "hero": "concert_hall"
+ },
+ "images_dir": "img",
+ "mc": [
+  {
+   "img": "cinema",
+   "a": "a cinema",
+   "f": "You watch a new film here on a very big screen.",
+   "o": [
+    "a cinema",
+    "a theatre",
+    "a concert hall",
+    "a library"
+   ]
+  },
+  {
+   "img": "library",
+   "a": "a library",
+   "f": "You borrow books here and return them a few weeks later.",
+   "o": [
+    "a library",
+    "a bakery",
+    "a museum",
+    "a market"
+   ]
+  },
+  {
+   "img": "museum",
+   "a": "a museum",
+   "f": "This is the place to learn about history and the past.",
+   "o": [
+    "a museum",
+    "an aquarium",
+    "a castle",
+    "a town hall"
+   ]
+  },
+  {
+   "img": "park",
+   "a": "a park",
+   "f": "It's green and outside. People walk their dogs here.",
+   "o": [
+    "a park",
+    "a square",
+    "a playground",
+    "a market"
+   ]
+  },
+  {
+   "img": "stadium",
+   "a": "a stadium",
+   "f": "Thousands of people sit here and watch a football match.",
+   "o": [
+    "a stadium",
+    "a sports centre",
+    "a gym",
+    "an ice rink"
+   ]
+  },
+  {
+   "img": "swimming_pool",
+   "a": "a swimming pool",
+   "f": "You swim 25 metres here and the water smells of chlorine.",
+   "o": [
+    "a swimming pool",
+    "an ice rink",
+    "a harbour",
+    "an aquarium"
+   ]
+  },
+  {
+   "img": "restaurant",
+   "a": "a restaurant",
+   "f": "People eat a meal here, sometimes on special occasions.",
+   "o": [
+    "a restaurant",
+    "a café",
+    "a bakery",
+    "a market"
+   ]
+  },
+  {
+   "img": "shopping_centre",
+   "a": "a shopping centre",
+   "f": "A lot of shops in one big building — you come here to buy clothes.",
+   "o": [
+    "a shopping centre",
+    "a market",
+    "a square",
+    "a car park"
+   ]
+  }
+ ],
+ "sp": [
+  {
+   "img": "aquarium",
+   "pre": "an",
+   "w": "aquarium",
+   "x": "ot"
+  },
+  {
+   "img": "castle",
+   "pre": "a",
+   "w": "castle",
+   "x": "ne"
+  },
+  {
+   "img": "market",
+   "pre": "a",
+   "w": "market",
+   "x": "li"
+  },
+  {
+   "img": "bakery",
+   "pre": "a",
+   "w": "bakery",
+   "x": "sn"
+  },
+  {
+   "img": "bridge",
+   "pre": "a",
+   "w": "bridge",
+   "x": "at"
+  },
+  {
+   "img": "fountain",
+   "pre": "a",
+   "w": "fountain",
+   "x": "rs"
+  },
+  {
+   "img": "cathedral",
+   "pre": "a",
+   "w": "cathedral",
+   "x": "io"
+  },
+  {
+   "img": "museum",
+   "pre": "a",
+   "w": "museum",
+   "x": "rn"
+  }
+ ],
+ "pairs": [
+  [
+   "a harbour",
+   "a place by the sea where boats stay"
+  ],
+  [
+   "a town hall",
+   "the building where the local government works"
+  ],
+  [
+   "a pharmacy",
+   "a shop where you buy medicine"
+  ],
+  [
+   "a playground",
+   "an area with swings and slides for children"
+  ],
+  [
+   "a square",
+   "a large open area in the centre of a town"
+  ],
+  [
+   "a concert hall",
+   "a building where an orchestra performs"
+  ]
+ ],
+ "ty": [
+  {
+   "s": "The boats stay in the ___ all winter.",
+   "h": "h",
+   "a": "harbour"
+  },
+  {
+   "s": "I need some medicine, so I'm going to the ___.",
+   "h": "p",
+   "a": "pharmacy"
+  },
+  {
+   "s": "My little brother loves the ___ in the park.",
+   "h": "p",
+   "a": "playground"
+  },
+  {
+   "s": "We met in the main ___, next to the fountain.",
+   "h": "s",
+   "a": "square"
+  },
+  {
+   "s": "There are thirty paintings in that art ___.",
+   "h": "g",
+   "a": "gallery"
+  },
+  {
+   "s": "In winter we skate at the ice ___.",
+   "h": "r",
+   "a": "rink",
+   "img": "ice_rink"
+  }
+ ],
+ "prep": [
+  {
+   "s": "The lesson starts ___ half past eight.",
+   "a": "at",
+   "o": [
+    "at",
+    "on",
+    "in"
+   ],
+   "f": "A point on the clock → AT."
+  },
+  {
+   "s": "My birthday is ___ 14th June.",
+   "a": "on",
+   "o": [
+    "in",
+    "on",
+    "at"
+   ],
+   "f": "A date or a day → ON."
+  },
+  {
+   "s": "We always travel ___ the summer.",
+   "a": "in",
+   "o": [
+    "in",
+    "on",
+    "at"
+   ],
+   "f": "A long stretch of time → IN."
+  },
+  {
+   "s": "I have been waiting here ___ two o'clock.",
+   "a": "since",
+   "o": [
+    "since",
+    "for",
+    "from"
+   ],
+   "f": "SINCE + the moment it started. FOR + how long."
+  },
+  {
+   "s": "We waited outside the cinema ___ twenty minutes.",
+   "a": "for",
+   "o": [
+    "for",
+    "since",
+    "during"
+   ],
+   "f": "FOR + how long it lasted."
+  },
+  {
+   "s": "Please don't talk ___ the concert.",
+   "a": "during",
+   "o": [
+    "during",
+    "for",
+    "while"
+   ],
+   "f": "DURING + an event. (WHILE needs a verb: while the concert was on.)"
+  },
+  {
+   "s": "I'll be home ___ seven, I promise.",
+   "a": "by",
+   "o": [
+    "by",
+    "until",
+    "till"
+   ],
+   "f": "BY = not later than seven. UNTIL = the action lasts up to seven."
+  },
+  {
+   "s": "I saw her ___ last Friday.",
+   "a": "no preposition",
+   "o": [
+    "no preposition",
+    "on",
+    "in"
+   ],
+   "f": "last / next / this / every take NO preposition."
+  }
+ ],
+ "mission": {
+  "h1": "Speaking Mission:",
+  "h1accent": "My week in town",
+  "intro": "Твои ответы уже у учителя. Теперь настоящая домашка. Она одинаковая для всех — и она устная.",
+  "revealLabel": "Show the lie",
+  "hideLabel": "Hide the lie",
+  "blocks": [
+   {
+    "dark": true,
+    "h": "The mission",
+    "p": "Next lesson you speak for <b>60–90 seconds</b> about <b>your week in this town</b>: which places you go to and <b>when</b>. Hide <b>ONE lie</b> inside. The class asks questions and tries to find it.",
+    "ru": "Рассказываешь про свою неделю: куда и когда ходишь. Одно событие — выдумка. Класс ищет её вопросами."
+   },
+   {
+    "h": "Your week must have",
+    "check": [
+     {
+      "t": "<b>at</b>, <b>on</b> and <b>in</b> — one of each",
+      "ru": "I go to the pool at six, on Tuesdays, in the evening."
+     },
+     {
+      "t": "one sentence with <b>for</b> or <b>since</b>",
+      "ru": "I have been going to that gym for two years."
+     },
+     {
+      "t": "one sentence with <b>by</b> or <b>until</b>",
+      "ru": "I stay at the library until seven. / I have to be home by nine."
+     },
+     {
+      "t": "one sentence with <b>during</b>",
+      "ru": "During the holidays I go to the ice rink every day."
+     },
+     {
+      "t": "one sentence with <b>NO preposition</b>: last / next / every",
+      "ru": "Last Saturday I went to the market."
+     },
+     {
+      "t": "two B1+ places (aquarium, castle, market, concert hall, ice rink, skate park, bowling alley, cathedral…)"
+     }
+    ]
+   },
+   {
+    "h": "The rules that kill the mistakes",
+    "p": "<span style=\"color:var(--coral-deep)\">on last Friday</span> ✗ &nbsp; <span style=\"color:var(--mint-deep)\">last Friday</span> ✓<br><span style=\"color:var(--coral-deep)\">during two hours</span> ✗ &nbsp; <span style=\"color:var(--mint-deep)\">for two hours</span> ✓<br><span style=\"color:var(--coral-deep)\">I will wait by six</span> ✗ &nbsp; <span style=\"color:var(--mint-deep)\">I will wait until six</span> ✓<br><b>in</b> the morning, but <b>on</b> Friday morning."
+   },
+   {
+    "h": "How to prepare: speak, don't write",
+    "ol": [
+     "Say your week out loud 3 times. Record yourself on your phone if you like — it's only for you.",
+     "Make a card with <b>max 5 keywords</b> (no sentences!). Only this card is allowed in class.",
+     "Be ready: a partner will <b>fill in your timetable</b> while you speak, and the teacher will ask <b>2 surprise questions</b> (“Since when? Until what time?”)."
+    ],
+    "ru": "ИИ напишет текст за 5 секунд, но не ответит за тебя на неожиданный вопрос. Готовься говорить сам."
+   },
+   {
+    "h": "Useful phrases",
+    "phrases": [
+     "On Mondays I…",
+     "at half past…",
+     "in the afternoon",
+     "at the weekend",
+     "I have been… since…",
+     "for three years",
+     "until…",
+     "by…",
+     "during the holidays",
+     "every Saturday"
+    ]
+   },
+   {
+    "h": "Example (not you!): find Maxim's lie",
+    "model": "On Mondays I go to the gym at four — I have been going there since September. On Wednesday evening we usually go to the cinema, and the film never finishes before ten, so I get home at about half past. I don't do anything on Tuesday. <mark>Every Thursday I play the piano in the concert hall until midnight.</mark> At the weekend it's better: on Saturday morning my mum and I go to the market for an hour, and in the afternoon I'm at the ice rink. During the holidays I go there every day. Last Sunday I was at the museum for three hours.",
+    "revealLabel": "Show the lie"
+   },
+   {
+    "dark": true,
+    "h": "See you next lesson!",
+    "p": "No notes. Just you, your 5 keywords and your English."
+   }
+  ]
+ }
+}
