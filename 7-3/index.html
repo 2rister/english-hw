@@ -137,7 +137,7 @@ h2{font-family:var(--display);font-weight:800;letter-spacing:-0.02em;font-size:2
 <script>
 const IMG = {"cover": "img/theme_park.jpg", "hero": "img/concert_hall.jpg", "cinema": "img/cinema.jpg", "library": "img/library.jpg", "museum": "img/museum.jpg", "park": "img/park.jpg", "stadium": "img/stadium.jpg", "swimming_pool": "img/swimming_pool.jpg", "restaurant": "img/restaurant.jpg", "shopping_centre": "img/shopping_centre.jpg", "aquarium": "img/aquarium.jpg", "castle": "img/castle.jpg", "market": "img/market.jpg", "bakery": "img/bakery.jpg", "bridge": "img/bridge.jpg", "fountain": "img/fountain.jpg", "cathedral": "img/cathedral.jpg", "ice_rink": "img/ice_rink.jpg"};
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbx9CUvXuQ827FfwviQ0JxtdBl7_K7Jg54c-O9g4EmVjGiJwlK8shWJtrz1yOXHpkd5V4g/exec'; // Apps Script /exec URL (empty = send via Telegram share)
-const STUDENTS = ["София Б.","Арина Б.","Мария Г.","Лев Д.","София Е.","Максим М.","Лера М."];
+const STUDENTS = ["Бельская София","Брунина Арина","Гильфанова Мария","Дзюбак Лев","Епифанова София","Кляшторная Софья","Марков Максим","Михайлова Лера"];
 
 /* ---------- tasks (keys are re-checked on the server) ---------- */
 const MC = [
@@ -232,7 +232,10 @@ function welcome(){
     else { other.classList.add('hidden'); S.name = b.dataset.n; go.disabled = false; }
   });
   other.oninput = () => { S.name = other.value.trim(); go.disabled = !S.name; };
-  go.onclick = () => { S.t0 = Date.now(); intro(1,'Places quiz','Where are you? Look at the picture and choose the right place.', ()=>mc(0)); };
+  go.onclick = () => { S.t0 = Date.now(); trackOpen(); intro(1,'Places quiz','Where are you? Look at the picture and choose the right place.', ()=>mc(0)); };
+}
+function trackOpen(){
+  fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({event:'opened',assignmentId:'a_u1p_7_3',unit:'u1p',name:S.name})}).catch(()=>{});
 }
 function intro(n, title, text, next){
   $('#top').classList.add('hidden');
@@ -395,7 +398,7 @@ function report(){
 function send(){
   const btn = $('#send'), st = $('#st');
   btn.disabled = true; st.className = 'status'; st.textContent = 'Sending to your teacher…';
-  const payload = {unit:'u1p', name:S.name, mc:S.mc, sp:S.sp, pairsMistakes:S.pairsMistakes, ty:S.ty, prep:S.prep, seconds:Math.round((Date.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120)};
+  const payload = {assignmentId:'a_u1p_7_3', unit:'u1p', name:S.name, mc:S.mc, sp:S.sp, pairsMistakes:S.pairsMistakes, ty:S.ty, prep:S.prep, seconds:Math.round((Date.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120)};
   const ok = () => mission();
   const fail = e => { btn.disabled = false; btn.textContent = 'Try again'; st.className = 'status err'; st.textContent = 'Could not send. Check the internet and tap “Try again”. (' + (e && e.message ? e.message : e) + ')'; };
   if (!ENDPOINT && typeof google !== 'undefined' && google.script && google.script.run){

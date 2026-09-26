@@ -1,11 +1,8 @@
 <!doctype html>
 <html lang="en"><head>
-<!-- Built by build_homework.py for group 7.5; source content: Gateway A2 Unit 1. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Places in Town · Homework 7.5</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<title>Big Ideas · Homework 8.4</title>
 <style>
 :root{
   --violet:#6C3CE9;--violet-deep:#3B1C8C;--ink:#1B1530;--ink-2:#4A4263;
@@ -13,7 +10,7 @@
   --coral:#FF7A59;--coral-deep:#D9502F;--coral-soft:#FFE3DA;
   --mint:#22B8A0;--mint-deep:#128571;--mint-soft:#D6F5EF;
   --sun:#FFC93C;--sun-soft:#FFF2CC;
-  --display:'Bricolage Grotesque',system-ui,sans-serif;--body:'Nunito',system-ui,sans-serif;
+  --display:system-ui,-apple-system,'Segoe UI',sans-serif;--body:system-ui,-apple-system,'Segoe UI',sans-serif;
   --r:16px;--ease:cubic-bezier(.16,1,.3,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -125,7 +122,6 @@ h2{font-family:var(--display);font-weight:800;letter-spacing:-0.02em;font-size:2
 .fade{animation:fade .5s var(--ease)}
 @keyframes fade{from{opacity:.001;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (max-width:520px){.names{grid-template-columns:1fr}.name{width:100%}}
 </style>
 </head>
 <body>
@@ -136,47 +132,48 @@ h2{font-family:var(--display);font-weight:800;letter-spacing:-0.02em;font-size:2
 <div class="sheet" id="sheet"><div class="in"><h3 id="shT"></h3><p id="shP"></p><button class="btn" id="shB">Continue</button></div></div>
 
 <script>
-const IMG = {"museum":"img/museum.jpg","park":"img/park.jpg","stadium":"img/stadium.jpg","swimming_pool":"img/swimming_pool.jpg","shopping_centre":"img/shopping_centre.jpg","hero":"img/theme_park.jpg","cover":"img/theme_park.jpg","cinema":"img/cinema.jpg","restaurant":"img/restaurant.jpg","ice_rink":"img/ice_rink.jpg","aquarium":"img/aquarium.jpg","castle":"img/castle.jpg","bakery":"img/bakery.jpg","fountain":"img/fountain.jpg","library":"img/library.jpg","market":"img/market.jpg","bridge":"img/bridge.jpg","cathedral":"img/cathedral.jpg"};
+const IMG = {"light_bulb": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260922_213702_5bb3156e-ff98-4aa1-8e02-f9bac1328b42_min.webp", "drone": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260922_213701_43f182b1-51d8-4a46-a3c3-1d88a03021e8_min.webp", "vaccine": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260922_213736_7ca3b499-50ea-48bb-9e65-6f5a400c5603_min.webp", "printer": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260922_213736_e6fddab9-ab7c-4edc-8d2c-9d7746f30cab_min.webp", "laptop": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065255_bd56bcb0-1d2f-4ddf-88cf-041f09905afa_min.webp", "fridge": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065255_59c5c41c-5a75-4720-93ee-6c157d658269_min.webp", "electric_car": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065326_0b8ffc63-e037-413c-8d99-99e6650ed31b_min.webp", "satnav": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065326_141f32ea-1ff1-4d49-ae00-e413fff9f24c_min.webp", "smartphone": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065352_21914f49-6bed-4a2c-85d2-f0a50406618f_min.webp", "tablet": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065352_bd21e12c-4471-4882-bc31-ad354eff7e87_min.webp", "keyboard": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065451_421c6ad2-ed2e-4119-a043-f0e05d5ed7f0_min.webp", "screen": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065451_a01abcfa-70c2-45ae-a69f-8527208e233e_min.webp", "mouse": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065639_e7fbf200-e476-4943-91c6-5c701cab726d_min.webp", "earphones": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065640_28e11296-3447-467a-ada3-694d51ceaf93_min.webp", "microwave": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065838_a1f3f506-9b94-4ae6-af2d-8b016cbd58d3_min.webp", "camera": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_065839_bbbec76d-8769-4766-b371-443eedf5542a_min.webp", "engineer": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_070021_0d77406a-2e4e-4ce2-9569-002c20a64ff5_min.webp", "experiment": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_070021_365838e8-a779-4228-8c56-92b17d18ca14_min.webp", "cover": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_070049_35d6b838-c734-4d79-b833-504f4fc3ec9e_min.webp", "minjun": "https://d8j0ntlcm91z4.cloudfront.net/user_3JKlXZkTMYc1gyxXMWBxlW61PY0/hf_20260923_070049_92f4d85b-c369-4ede-8c2d-feef94008b50_min.webp"};
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbx9CUvXuQ827FfwviQ0JxtdBl7_K7Jg54c-O9g4EmVjGiJwlK8shWJtrz1yOXHpkd5V4g/exec'; // Apps Script /exec URL (empty = send via Telegram share)
-const STUDENTS = ["Дворкин Глеб","Дятлов Степан","Сидоров Андрей","Хасиева Софья","Фефилов Артем","Каретников Виктор"];
+const STUDENTS = ["Пономарев Вова","Соцкий Федя","Дмитренко Иван","Егармин Слава","Савельев Андрей","Дугинец Свят"];
 
 /* ---------- tasks (keys are re-checked on the server) ---------- */
 const MC = [
-  {img:'cinema', a:'a cinema', f:'You watch a new film here on a very big screen.', o:['a cinema','a theatre','a concert hall','a library']},
-  {img:'library', a:'a library', f:'You borrow books here and return them a few weeks later.', o:['a library','a bakery','a museum','a market']},
-  {img:'museum', a:'a museum', f:'This is the place to learn about history and the past.', o:['a museum','an aquarium','a castle','a town hall']},
-  {img:'park', a:'a park', f:'It\'s green and outside. People walk their dogs here.', o:['a park','a square','a playground','a market']},
-  {img:'stadium', a:'a stadium', f:'Thousands of people sit here and watch a football match.', o:['a stadium','a sports centre','a gym','an ice rink']},
-  {img:'swimming_pool', a:'a swimming pool', f:'You swim 25 metres here and the water smells of chlorine.', o:['a swimming pool','an ice rink','a harbour','an aquarium']},
-  {img:'restaurant', a:'a restaurant', f:'People eat a meal here, sometimes on special occasions.', o:['a restaurant','a café','a bakery','a market']},
-  {img:'shopping_centre', a:'a shopping centre', f:'A lot of shops in one big building — you come here to buy clothes.', o:['a shopping centre','a market','a square','a car park']}
+  {img:'light_bulb', a:'a light bulb', f:'If you switch it on, the light bulb gives you light.', o:['a light bulb','a camera','a printer','a screen']},
+  {img:'drone', a:'a drone', f:'If you fly a drone, you can film from the sky.', o:['a drone','a satnav','a vaccine','a mouse']},
+  {img:'vaccine', a:'a vaccine', f:'If you have a vaccine, you don\'t get the illness.', o:['a vaccine','a microwave','a fridge','a tablet']},
+  {img:'printer', a:'a printer', f:'If you press print, the printer makes a paper copy.', o:['a laptop','a printer','a keyboard','a drone']},
+  {img:'laptop', a:'a laptop', f:'If you take a laptop with you, you can work anywhere.', o:['a screen','a fridge','a laptop','a satnav']},
+  {img:'fridge', a:'a fridge', f:'If you put food in the fridge, it stays fresh longer.', o:['a microwave','a fridge','a printer','a camera']},
+  {img:'satnav', a:'a satnav', f:'If you use a satnav, you don\'t get lost.', o:['a satnav','a tablet','a mouse','an electric car']},
+  {img:'electric_car', a:'an electric car', f:'If you drive an electric car, you don\'t use petrol.', o:['an electric car','a drone','a laptop','a fridge']}
 ];
 const SP = [
-  {img:'aquarium', pre:'an', w:'aquarium', x:'ot'},
-  {img:'castle', pre:'a', w:'castle', x:'ne'},
-  {img:'market', pre:'a', w:'market', x:'li'},
-  {img:'bakery', pre:'a', w:'bakery', x:'sn'},
-  {img:'bridge', pre:'a', w:'bridge', x:'at'},
-  {img:'fountain', pre:'a', w:'fountain', x:'rs'},
-  {img:'cathedral', pre:'a', w:'cathedral', x:'io'},
-  {img:'museum', pre:'a', w:'museum', x:'rn'}
+  {img:'smartphone', pre:'a', w:'smartphone', x:'ei'},
+  {img:'tablet', pre:'a', w:'tablet', x:'ro'},
+  {img:'keyboard', pre:'a', w:'keyboard', x:'ns'},
+  {img:'screen', pre:'a', w:'screen', x:'ad'},
+  {img:'mouse', pre:'a computer', w:'mouse', x:'rt'},
+  {img:'earphones', pre:'a pair of', w:'earphones', x:'it'},
+  {img:'microwave', pre:'a', w:'microwave', x:'ls'},
+  {img:'camera', pre:'a digital', w:'camera', x:'up'}
 ];
 const PAIRS = [
-  ['a harbour','a place by the sea where boats stay'],
-  ['a town hall','the building where the local government works'],
-  ['a pharmacy','a shop where you buy medicine'],
-  ['a playground','an area with swings and slides for children'],
-  ['a square','a large open area in the centre of a town'],
-  ['a concert hall','a building where an orchestra performs']
+  ['design','to plan how something will look before you make it'],
+  ['invent','to make something completely new for the first time'],
+  ['discover','to find something that was always there'],
+  ['develop','to make something better, step by step'],
+  ['produce','to make something in large numbers'],
+  ['build','to make a house, a bridge or a machine from parts']
 ];
 const TY = [
-  {s:'The boats stay in the ___ all winter.', h:'h', a:'harbour'},
-  {s:'I need some medicine, so I\'m going to the ___.', h:'p', a:'pharmacy'},
-  {s:'My little brother loves the ___ in the park.', h:'p', a:'playground'},
-  {s:'We met in the main ___, next to the fountain.', h:'s', a:'square'},
-  {s:'There are thirty paintings in that art ___.', h:'g', a:'gallery'},
-  {s:'In winter we skate at the ice ___.', h:'r', a:'rink', img:'ice_rink'}
+  {s:'A doctor gives you a ___ so you don\'t get ill.', h:'v', a:'vaccine', img:'vaccine'},
+  {s:'If you put a grape in a ___, it explodes.', h:'m', a:'microwave', img:'microwave'},
+  {s:'Mark Rober is an ___: he designs and builds machines.', h:'e', a:'engineer', img:'engineer'},
+  {s:'A ___ tells you which way to drive.', h:'s', a:'satnav', img:'satnav'},
+  {s:'Scientists do an ___ to test an idea.', h:'e', a:'experiment', img:'experiment'},
+  {s:'Edison is famous for the light ___.', h:'b', a:'bulb', img:'light_bulb'}
 ];
+
 const TOTAL_STEPS = MC.length + SP.length + 1 + TY.length;
 const S = {name:'', t0:0, step:0, mc:[], sp:[], pairsMistakes:0, ty:[]};
 const $ = s => document.querySelector(s);
@@ -207,8 +204,8 @@ function welcome(){
   view(`
     <section class="welcome">
       <div class="hero"><img src="${IMG.cover}" alt=""></div>
-      <h1>Places <em>in Town</em></h1>
-      <p class="muted">Homework · Gateway A2, Unit 1 · группа 7.5. About 15–20 minutes. Four vocabulary challenges, then a speaking mission.</p>
+      <h1>Big Ideas <em>What if…?</em></h1>
+      <p class="muted">Homework · Gateway A2, Unit 10 · группа 8.4. About 15 minutes. At the end you get your Speaking Mission.</p>
       <h2>Who are you?</h2>
       <div class="names">${STUDENTS.map(n=>`<button class="name" data-n="${esc(n)}">${esc(n)}</button>`).join('')}<button class="name" data-n="__other">Другой</button></div>
       <input class="other hidden" id="other" placeholder="Имя и фамилия" autocomplete="name">
@@ -221,10 +218,10 @@ function welcome(){
     else { other.classList.add('hidden'); S.name = b.dataset.n; go.disabled = false; }
   });
   other.oninput = () => { S.name = other.value.trim(); go.disabled = !S.name; };
-  go.onclick = () => { S.t0 = Date.now(); trackOpen(); intro(1,'Places quiz','Where are you? Look at the picture and choose the right place.', ()=>mc(0)); };
+  go.onclick = () => { S.t0 = Date.now(); trackOpen(); intro(1,'Inventions quiz','What is it? Look at the picture and choose the right invention.', ()=>mc(0)); };
 }
 function trackOpen(){
-  fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({event:'opened',assignmentId:'a_u1_7_5',unit:'u1v75',name:S.name})}).catch(()=>{});
+  fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({event:'opened',assignmentId:'a_u10_8_4',unit:'u10',name:S.name})}).catch(()=>{});
 }
 function intro(n, title, text, next){
   $('#top').classList.add('hidden');
@@ -234,10 +231,10 @@ function intro(n, title, text, next){
 
 /* ---------- part 1: picture multiple choice ---------- */
 function mc(i){
-  if (i >= MC.length) return intro(2,'Spelling game · B1+','Look at the picture. Tap the letters in the right order. There are two extra letters!', ()=>sp(0));
+  if (i >= MC.length) return intro(2,'Spelling game','Look at the picture. Tap the letters in the right order. There are two extra letters!', ()=>sp(0));
   progress('Part 1 · ' + (i+1) + '/' + MC.length);
   const q = MC[i], opts = shuffle(q.o);
-  view(`<h2>Where is this?</h2><div class="pic"><img src="${IMG[q.img]}" alt=""></div>
+  view(`<h2>What is it?</h2><div class="pic"><img src="${IMG[q.img]}" alt=""></div>
     <div class="opts">${opts.map(o=>`<button class="opt">${esc(o)}</button>`).join('')}</div>
     <div class="foot"><button class="btn" id="chk" disabled>Check</button></div>`);
   let pick = null;
@@ -254,7 +251,7 @@ function mc(i){
 
 /* ---------- part 2: spelling with letter tiles ---------- */
 function sp(i){
-  if (i >= SP.length) return intro(3,'More places · B1+','First match the pairs, then write the missing words.', pairs);
+  if (i >= SP.length) return intro(3,'Verbs and words from the unit','First match the pairs, then write the missing words.', pairs);
   progress('Part 2 · ' + (i+1) + '/' + SP.length);
   const q = SP[i], letters = shuffle((q.w + q.x).split(''));
   view(`<h2>Spell the word</h2><div class="pic"><img src="${IMG[q.img]}" alt=""></div>
@@ -355,7 +352,7 @@ function report(){
   SP.forEach((q,i)=>{ if(S.sp[i]!==q.w) wrong.push(q.pre+' '+q.w+' → '+(S.sp[i]||'—')); });
   TY.forEach((q,i)=>{ if(norm(S.ty[i])!==q.a) wrong.push(q.a+' → '+(S.ty[i]||'—')); });
   const pct = Math.round(r.total/r.max*100);
-  return ['ДЗ Gateway A2 U1 «Places in Town» · группа 7.5', S.name, 'Итого: '+r.total+'/'+r.max+' ('+pct+'%)',
+  return ['ДЗ Gateway A2 U10 «Big Ideas» · группа 8.4', S.name, 'Итого: '+r.total+'/'+r.max+' ('+pct+'%)',
     'Картинки '+r.mc+'/8 · Спеллинг '+r.sp+'/8 · Пары '+r.pr+'/6 · Слова '+r.ty+'/6',
     wrong.length ? 'Ошибки:\n'+wrong.join('\n') : 'Без ошибок!',
     'Время: '+Math.max(1,Math.round((Date.now()-S.t0)/60000))+' мин'].join('\n');
@@ -363,7 +360,7 @@ function report(){
 function send(){
   const btn = $('#send'), st = $('#st');
   btn.disabled = true; st.className = 'status'; st.textContent = 'Sending to your teacher…';
-  const payload = {assignmentId:'a_u1_7_5', unit:'u1v75', name:S.name, mc:S.mc, sp:S.sp, pairsMistakes:S.pairsMistakes, ty:S.ty, seconds:Math.round((Date.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120)};
+  const payload = {assignmentId:'a_u10_8_4', unit:'u10', name:S.name, mc:S.mc, sp:S.sp, pairsMistakes:S.pairsMistakes, ty:S.ty, seconds:Math.round((Date.now()-S.t0)/1000), ua:navigator.userAgent.slice(0,120)};
   const ok = () => mission();
   const fail = e => { btn.disabled = false; btn.textContent = 'Try again'; st.className = 'status err'; st.textContent = 'Could not send. Check the internet and tap “Try again”. (' + (e && e.message ? e.message : e) + ')'; };
   if (!ENDPOINT && typeof google !== 'undefined' && google.script && google.script.run){
@@ -392,42 +389,50 @@ function shareFallback(ok){ // no server: the student sends the report to the te
 function mission(){
   $('#top').classList.add('hidden');
   view(`<section class="mission">
-    <div class="hero"><img src="${IMG.hero}" alt="A lively town with places to visit"></div>
-    <h1>Speaking Mission:<br><em>My perfect afternoon in town</em></h1>
-    <p class="muted">Твои ответы уже у учителя. Теперь подготовь короткий устный рассказ — без заученного текста.</p>
+    <div class="hero"><img src="${IMG.minjun}" alt=""></div>
+    <h1>Speaking Mission:<br><em>If… then me</em></h1>
+    <p class="muted">Your results are with the teacher. Now the real homework. It is the same for everyone.</p>
 
     <div class="block dark"><h3>The mission</h3>
-      <p>Next lesson, speak for <b>60–90 seconds</b>. Plan an afternoon in your town for a friend. Choose the places you visit, explain <b>why</b>, and hide <b>ONE impossible detail</b>. The class finds it by asking questions.</p>
-      <span class="ru" style="color:var(--lav-3)">Спланируй прогулку по городу для друга. Расскажи, куда вы пойдёте и зачем. Добавь одну невозможную деталь — класс должен найти её вопросами.</span>
+      <p>Next lesson you speak for <b>90 seconds</b>: a chain of <b>if-sentences about your own life</b>. Hide <b>ONE lie</b> inside. The class asks questions and tries to find it.</p>
+      <span class="ru" style="color:var(--lav-3)">90 секунд говоришь про свою жизнь цепочкой условных предложений и прячешь в рассказе одну неправду. Класс будет искать её вопросами.</span>
     </div>
 
-    <div class="block"><h3>Your town plan must have</h3>
+    <div class="block"><h3>Your story must have</h3>
       <div class="check">
-        <label><input type="checkbox"><span><b>6+ places</b> from the homework</span></label>
-        <label><input type="checkbox"><span><b>3 reasons</b> with <i>because</i> <span class="ru">We go to the library because my friend loves comics.</span></span></label>
-        <label><input type="checkbox"><span><b>3 adverbs of frequency</b> <span class="ru">usually, often, sometimes, hardly ever, never</span></span></label>
-        <label><input type="checkbox"><span><b>2 questions</b> for your friend <span class="ru">Do you like art? Where do you usually go at weekends?</span></span></label>
-        <label><input type="checkbox"><span><b>2 level-up places</b> <span class="ru">aquarium, castle, market, harbour, cathedral, ice rink…</span></span></label>
-        <label><input type="checkbox"><span><b>1 impossible detail</b> for the class to discover</span></label>
+        <label><input type="checkbox"><span>3 zero conditionals — always true about you <span class="ru">If I drink coffee at night, I don't sleep.</span></span></label>
+        <label><input type="checkbox"><span>3 first conditionals — this week <span class="ru">If I finish my project on Friday, I'll go to the cinema.</span></span></label>
+        <label><input type="checkbox"><span>1 sentence with <b>unless</b> <span class="ru">I won't pass the test unless I study tonight.</span></span></label>
+        <label><input type="checkbox"><span>1 sentence with <b>as soon as</b> <span class="ru">As soon as I get home, I'll…</span></span></label>
+        <label><input type="checkbox"><span>1 sentence with <b>might</b> <span class="ru">If the weather is good, I might go skating.</span></span></label>
+        <label><input type="checkbox"><span>2 words from this unit (invention, engineer, experiment, drone, vaccine…)</span></label>
       </div>
     </div>
 
-    <div class="block"><h3>Useful route language</h3>
-      <div class="phr"><span>First, we go to…</span><span>After that, we visit…</span><span>It is a place where…</span><span>We go there because…</span><span>I usually…</span><span>My friend hardly ever…</span><span>Do you want to…?</span><span>Finally, we finish at…</span></div>
+    <div class="block"><h3>The rule that kills the mistake</h3>
+      <p>After <b>if, when, unless, as soon as</b> — <b>never</b> use <i>will</i>.<br><span style="color:var(--coral-deep)">If it will rain…</span> ✗ &nbsp; <span style="color:var(--mint-deep)">If it rains…</span> ✓</p>
     </div>
 
-    <div class="block"><h3>Prepare the smart way</h3>
-      <ol><li>Choose your route and say it aloud three times.</li><li>Write only <b>five keywords</b>, not complete sentences.</li><li>Be ready for two surprise questions from the teacher.</li></ol>
-      <span class="ru">На уроке можно использовать только пять ключевых слов. Полный написанный текст использовать нельзя.</span>
+    <div class="block"><h3>How to prepare: speak, don't write</h3>
+      <ol>
+        <li>Say your chain out loud 3 times. You can record yourself on your phone — it's just for you.</li>
+        <li>Make a card with <b>max 5 keywords</b> (no sentences!). Only this card is allowed in class.</li>
+        <li>Be ready: a partner will retell two of your sentences in the 3rd person (<i>“If he misses the bus, he'll…”</i>), and the teacher will ask <b>2 surprise questions</b>.</li>
+      </ol>
+      <span class="ru">ИИ может написать текст, но не ответит за тебя на неожиданные вопросы учителя. Готовься говорить сам.</span>
     </div>
 
-    <div class="block"><h3>Example: find the impossible detail</h3>
-      <div class="model" id="model">First, we go to the market because my friend loves street food. Then we usually visit the art gallery, but I sometimes get bored there. After that, we walk to the aquarium and watch the sharks. My friend asks, “Do you want to go swimming?” Finally, we go to the library because it is quiet. <mark>The library is open until three o’clock in the morning.</mark></div>
-      <button class="link" id="rev">Show the impossible detail</button>
+    <div class="block"><h3>Useful phrases</h3>
+      <div class="phr"><span>If I…, I always…</span><span>If I don't…, I…</span><span>If I have time tomorrow, I'll…</span><span>I won't… unless…</span><span>As soon as I…, I'll…</span><span>I might…</span><span>That's why…</span><span>But if…</span></div>
     </div>
-    <div class="block dark"><h3>See you next lesson!</h3><p>Five keywords. Your own voice. No full script.</p></div>
+
+    <div class="block"><h3>Example (not you!): find Slava's lie</h3>
+      <div class="model" id="model">If I don't have breakfast, I feel terrible by the third lesson. If my phone battery dies, I use my brother's old phone, and it's slower than a fridge. I always break something if I try to repair it — last week I opened our printer and it still doesn't work. <mark>If I go to bed after midnight, I wake up at five o'clock, full of energy.</mark> This week is busy. If I finish my project on Thursday, I'll go skating with Vova. I won't finish it unless my sister helps me. As soon as the holidays start, I'll build a drone from a kit. If the weather is good, I might test it in the park.</div>
+      <button class="link" id="rev">Show the lie</button>
+    </div>
+    <div class="block dark"><h3>See you next lesson!</h3><p>No notes. Just you, your 5 keywords and your English.</p></div>
   </section>`);
-  $('#rev').onclick = () => { $('#model').classList.toggle('reveal'); $('#rev').textContent = $('#model').classList.contains('reveal') ? 'Hide the detail' : 'Show the impossible detail'; };
+  $('#rev').onclick = () => { $('#model').classList.toggle('reveal'); $('#rev').textContent = $('#model').classList.contains('reveal') ? 'Hide the lie' : 'Show the lie'; };
 }
 
 if (window.__PROBE) { S.name='ПРОВЕРКА ССЫЛКИ'; S.t0=Date.now(); S.mc=MC.map(q=>q.a); S.sp=SP.map(q=>q.w); S.pairsMistakes=0; S.ty=TY.map(q=>q.a); finish(); } else welcome();
