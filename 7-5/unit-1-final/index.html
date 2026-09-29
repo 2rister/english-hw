@@ -462,6 +462,8 @@ function mission(){
     rev.textContent = $('#model').classList.contains('reveal') ? (M.hideLabel||'Hide') : (M.revealLabel||'Show the answer'); };
 }
 
-if (window.__PROBE) { S.name='TEST LINK'; S.t0=Date.now(); S.mc=MC.map(q=>q.a); S.sp=SP.map(q=>q.w); S.pairsMistakes=0; S.ty=TY.map(q=>q.a); S.prep=PREP.map(q=>q.a); S.listening=LISTENING.map(q=>q.a); finish(); } else welcome();
+const preview = new URLSearchParams(window.location.search).get('preview');
+if (preview === 'listening') { S.name='Preview'; S.t0=Date.now(); listeningIntro(); }
+else if (window.__PROBE) { S.name='TEST LINK'; S.t0=Date.now(); S.mc=MC.map(q=>q.a); S.sp=SP.map(q=>q.w); S.pairsMistakes=0; S.ty=TY.map(q=>q.a); S.prep=PREP.map(q=>q.a); S.listening=LISTENING.map(q=>q.a); finish(); } else welcome();
 </script>
 </body></html>
