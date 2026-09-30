@@ -1,0 +1,176 @@
+(() => {
+  'use strict';
+  const DATA = window.QUEST_DATA;
+  const KEY = 'street-style-quest-v1';
+  const app = document.querySelector('#app');
+  const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
+  const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
+  let state = load();
+  let session = null;
+
+  function load(){
+    try { return {...freshState(), ...JSON.parse(localStorage.getItem(KEY) || '{}')}; }
+    catch { return freshState(); }
+  }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); updateXP(); }
+  function updateXP(){ document.querySelector('#xpValue').textContent = state.xp || 0; }
+  function earned(id){ return state.badges.includes(id); }
+  function award(id){ if(id && !earned(id)){ state.badges.push(id); state.xp += 25; } }
+  function completedCount(){ return DATA.days.filter(day => state.days[day.id]?.complete).length; }
+  function buildItems(dayNumber){
+    const day=DATA.days[dayNumber-1];
+    const source=DATA.days[Math.max(0,dayNumber-2)].questions;
+    const sprint=source.filter(q=>['mc','type'].includes(q.type)).slice(0,6).map(q=>({...q,q:`Memory sprint · ${q.q}`}));
+    return [...day.questions,...sprint];
+  }
+  function route(){ location.hash.startsWith('#day-') ? renderMission(Number(location.hash.replace('#day-',''))) : renderHome(); }
+
+  function renderHome(){
+    app.replaceChildren(document.querySelector('#homeTemplate').content.cloneNode(true));
+    const done = completedCount();
+    const pct = Math.round(done / DATA.days.length * 100);
+    document.querySelector('#overallPercent').textContent = `${pct}%`;
+    document.querySelector('#overallBar').style.width = `${pct}%`;
+    const grid = document.querySelector('#dayGrid');
+    DATA.days.forEach((day,index) => {
+      const info = state.days[day.id];
+      const button = document.createElement('button');
+      button.className = `day-card ${info?.complete ? 'done' : ''}`;
+      button.innerHTML = `<div class="day-top"><span class="day-number">Day ${index+1}</span><span class="day-icon">${day.icon}</span></div><h3>${day.title}</h3><p>${day.short}</p><span class="day-status">${info?.complete ? `Complete · ${info.score}%` : info?.index ? 'Continue mission' : 'Start mission'} →</span>`;
+      button.addEventListener('click',()=>{ location.hash=`day-${index+1}`; });
+      grid.append(button);
+    });
+    const badges = document.querySelector('#badgeGrid');
+    DATA.badges.forEach(item => {
+      const node = document.createElement('div');
+      node.className = `badge ${earned(item.id) ? 'earned' : ''}`;
+      node.innerHTML = `<span class="badge-icon">${earned(item.id) ? item.icon : '🔒'}</span><strong>${item.name}</strong><small>${item.desc}</small>`;
+      badges.append(node);
+    });
+    document.querySelector('#resetButton').addEventListener('click',()=>{
+      if(confirm('Reset all Street Style Quest progress on this device?')){ localStorage.removeItem(KEY); state=freshState(); renderHome(); updateXP(); }
+    });
+    updateXP();
+  }
+
+  function renderMission(dayNumber){
+    const day = DATA.days[dayNumber-1];
+    if(!day){ location.hash='home'; return; }
+    app.replaceChildren(document.querySelector('#missionTemplate').content.cloneNode(true));
+    document.querySelector('#missionNumber').textContent = `Day ${dayNumber} of 7`;
+    document.querySelector('#missionTitle').textContent = day.title;
+    document.querySelector('#missionIntro').textContent = day.intro;
+    document.querySelector('#missionTime').textContent = `◷ ${day.time}`;
+    const items=buildItems(dayNumber);
+    document.querySelector('#missionReward').textContent = `✦ ${items.length} challenges`;
+    document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
+    const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
+    session = {day,items,dayNumber,index:saved.complete?0:(saved.index||0),correct:saved.complete?0:(saved.correct||0),attempts:saved.complete?0:(saved.attempts||0),answers:saved.complete?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false};
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    const {day,items,index} = session;
+    const card = document.querySelector('#gameCard');
+    const pct = Math.round(index / items.length * 100);
+    document.querySelector('#missionBar').style.width = `${pct}%`;
+    if(index >= items.length){ completeMission(); return; }
+    const item = items[index];
+    card.innerHTML = `<div class="round-label">Challenge ${index+1} / ${items.length}</div><h2 class="question">${item.q}</h2><p class="prompt-note">Say the complete answer aloud before you continue.</p><div id="interaction"></div><div id="feedback"></div>`;
+    session.hintLevel=0; session.wrongThisQuestion=false; session.usedHint=false;
+    if(item.type==='mc') renderMC(item);
+    else if(item.type==='type') renderType(item);
+    else if(item.type==='writing') renderWriting(item);
+    else if(item.type==='speaking') renderSpeaking(item);
+  }
+
+  function renderMC(item){
+    const box=document.querySelector('#interaction');
+    box.innerHTML=`<div class="options">${item.options.map(o=>`<button class="option">${o}</button>`).join('')}</div><div class="actions"><button class="secondary hidden" id="hintButton">Need a hint</button><button class="primary hidden" id="nextButton">Continue</button></div>`;
+    box.querySelectorAll('.option').forEach(btn=>btn.addEventListener('click',()=>{
+      if(box.querySelector('.correct')) return;
+      session.attempts++;
+      const ok=normalise(btn.textContent)===normalise(item.a);
+      if(ok){ btn.classList.add('correct'); finishAnswer(true,item); }
+      else { btn.classList.add('wrong'); session.wrongThisQuestion=true; showTry(); revealHintButton(item); }
+    }));
+  }
+
+  function renderType(item){
+    const box=document.querySelector('#interaction');
+    box.innerHTML=`<input class="answer-input" id="answerInput" autocomplete="off" autocapitalize="sentences" placeholder="Type your answer"><div class="actions"><button class="secondary hidden" id="hintButton">Need a hint</button><button class="primary" id="checkButton">Check</button><button class="primary hidden" id="nextButton">Continue</button></div>`;
+    const input=box.querySelector('#answerInput');
+    const check=()=>{
+      if(!input.value.trim()) return;
+      session.attempts++;
+      const accepted=[item.a,...(item.accept||[])].map(normalise);
+      const ok=accepted.includes(normalise(input.value));
+      if(ok){ input.disabled=true; finishAnswer(true,item); }
+      else { session.wrongThisQuestion=true; showTry(); revealHintButton(item); }
+    };
+    box.querySelector('#checkButton').addEventListener('click',check);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter')check();});
+  }
+
+  function renderWriting(item){
+    const box=document.querySelector('#interaction');
+    box.innerHTML=`<p class="prompt-note">Write freely. This task uses a self-check because good writing can have many correct answers.</p><textarea class="writing-box" id="writingBox" placeholder="Write here…"></textarea><div class="checklist">${item.checks.map((c,i)=>`<label class="check-item"><input type="checkbox" data-check="${i}"><span>${c}</span></label>`).join('')}</div><div class="actions"><span class="prompt-note" id="wordCount">0 words · aim for ${item.minWords}+</span><button class="primary" id="nextButton" disabled>Save & continue</button></div>`;
+    const area=box.querySelector('#writingBox'), button=box.querySelector('#nextButton'), checks=[...box.querySelectorAll('[data-check]')];
+    const validate=()=>{const words=area.value.trim()?area.value.trim().split(/\s+/).length:0;box.querySelector('#wordCount').textContent=`${words} words · aim for ${item.minWords}+`;button.disabled=words<item.minWords||checks.some(c=>!c.checked);};
+    area.addEventListener('input',validate); checks.forEach(c=>c.addEventListener('change',validate));
+    button.addEventListener('click',()=>{ session.attempts++; session.answers.push({q:item.q,production:true,words:area.value.trim().split(/\s+/).length}); session.correct++; advance(); });
+  }
+
+  function renderSpeaking(item){
+    const box=document.querySelector('#interaction');
+    box.innerHTML=`<div class="word-chips">${item.prompts.map(p=>`<span class="word-chip">${p}</span>`).join('')}</div><div class="recorder"><p><strong>Voice Booth</strong><br><span class="prompt-note">Record, listen, improve. The audio stays on this device and disappears when you leave the page.</span></p><button class="secondary" id="recordButton">● Start recording</button><audio id="playback" controls class="hidden"></audio><div class="checklist">${item.prompts.map((p,i)=>`<label class="check-item"><input type="checkbox" data-check="${i}"><span>${p}</span></label>`).join('')}</div></div><div class="actions"><button class="primary" id="nextButton" disabled>Finish mission</button></div>`;
+    const button=box.querySelector('#nextButton'),checks=[...box.querySelectorAll('[data-check]')];
+    checks.forEach(c=>c.addEventListener('change',()=>button.disabled=checks.some(x=>!x.checked)));
+    button.addEventListener('click',()=>{session.attempts++;session.correct++;advance();});
+    setupRecorder(box.querySelector('#recordButton'),box.querySelector('#playback'));
+  }
+
+  async function setupRecorder(button,audio){
+    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ button.textContent='Recorder unavailable — practise aloud'; button.disabled=true; return; }
+    let recorder,chunks=[];
+    button.addEventListener('click',async()=>{
+      if(recorder?.state==='recording'){recorder.stop();button.textContent='● Record again';button.classList.remove('recording');return;}
+      try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});recorder=new MediaRecorder(stream);chunks=[];recorder.ondataavailable=e=>chunks.push(e.data);recorder.onstop=()=>{audio.src=URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType}));audio.classList.remove('hidden');stream.getTracks().forEach(t=>t.stop());};recorder.start();button.textContent='■ Stop recording';button.classList.add('recording');}
+      catch{button.textContent='Microphone blocked — practise aloud';button.disabled=true;}
+    });
+  }
+
+  function showTry(){ document.querySelector('#feedback').innerHTML='<div class="feedback try"><strong>Not yet.</strong> Check the job of the word and try again.</div>'; }
+  function revealHintButton(item){
+    const button=document.querySelector('#hintButton'); if(!item.hint?.length) return;
+    button.classList.remove('hidden'); button.onclick=()=>{const hint=item.hint[Math.min(session.hintLevel,item.hint.length-1)];session.hintLevel++;session.usedHint=true;document.querySelector('#feedback').innerHTML=`<div class="hint"><strong>Hint ${session.hintLevel}:</strong> ${hint}</div>`;if(session.hintLevel>=item.hint.length)button.textContent='Show hint again';};
+  }
+  function finishAnswer(ok,item){
+    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,recovered:session.usedHint});save();}
+  }
+  function advance(){session.index++;state.days[session.day.id]={index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false};save();renderQuestion();}
+
+  function completeMission(){
+    const total=session.items.length;
+    const score=Math.round(session.correct/total*100);
+    state.days[session.day.id]={index:total,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:true,score,completedAt:new Date().toISOString()};
+    state.xp+=30;
+    if(score>=70)award(session.day.badge);
+    if(completedCount()===DATA.days.length)award('week');
+    save();
+    document.querySelector('#missionBar').style.width='100%';
+    const card=document.querySelector('#gameCard');
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'✨':'🌱'}</div><h2>${score>=70?'Mission complete!':'Good practice!'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery reward.':'Repeat this mission tomorrow to strengthen the difficult words.'}</p><button class="primary" id="routeButton">Back to the route</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
+    card.querySelector('#routeButton').addEventListener('click',()=>location.hash='home');
+    card.querySelector('#summaryButton')?.addEventListener('click',copySummary);
+  }
+
+  async function copySummary(){
+    const lines=['Street Style Quest — weekly summary',...DATA.days.map((d,i)=>`Day ${i+1}: ${state.days[d.id]?.complete?`${state.days[d.id].score}%`:'not complete'}`),`Badges: ${state.badges.length}/${DATA.badges.length}`,`XP: ${state.xp}`];
+    const text=lines.join('\n'); const box=document.querySelector('#summaryBox'); box.textContent=text; box.classList.remove('hidden');
+    try{await navigator.clipboard.writeText(text);document.querySelector('#summaryButton').textContent='Copied!';}catch{document.querySelector('#summaryButton').textContent='Select the summary below';}
+  }
+
+  window.addEventListener('hashchange',route);
+  updateXP(); route();
+})();
