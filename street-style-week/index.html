@@ -3,44 +3,50 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#5b2aa8">
+  <meta name="theme-color" content="#151515">
+  <meta name="description" content="A seven-day English vocabulary and speaking quest for Street Style week.">
   <title>Street Style Quest</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#app">Skip to the mission</a>
   <header class="topbar">
     <a class="brand" href="#home" aria-label="Street Style Quest home">
-      <span class="brand-mark">SS</span><span>Street Style Quest</span>
+      <span class="brand-mark" aria-hidden="true">SS/Q</span><span>Street Style Quest</span>
     </a>
-    <div class="xp-pill"><span aria-hidden="true">✦</span> <strong id="xpValue">0</strong> XP</div>
+    <div class="xp-pill"><span>XP</span><strong id="xpValue">0</strong></div>
   </header>
 
   <main id="app" class="shell" aria-live="polite"></main>
 
   <template id="homeTemplate">
-    <section class="hero">
-      <div class="eyebrow">7-day vocabulary adventure</div>
-      <h1>Build your own<br><em>style language.</em></h1>
-      <p>One mission a day. About 20–25 minutes. Your progress stays on this device.</p>
-      <div class="overall-card">
-        <div class="progress-copy"><strong id="overallLabel">Week progress</strong><span id="overallPercent">0%</span></div>
+    <section class="hero" aria-labelledby="homeTitle">
+      <div class="hero-copy">
+        <h1 id="homeTitle">Wear the words.<br><span>Own the week.</span></h1>
+        <p>Complete one 20 to 25 minute mission each day. Your work stays on this device.</p>
+      </div>
+      <div class="week-pass" aria-label="Weekly progress">
+        <div class="pass-row"><span>ACCESS</span><strong>ALL AREAS</strong></div>
+        <div class="pass-code">WEEK / 01</div>
+        <div class="progress-copy"><strong id="overallLabel">Route complete</strong><span id="overallPercent">0%</span></div>
         <div class="progress-track"><span id="overallBar"></span></div>
+        <div class="pass-name">SPEAK / WRITE / REMEMBER</div>
       </div>
     </section>
-    <section>
-      <div class="section-heading"><div><span class="eyebrow">Your route</span><h2>Seven missions</h2></div><button class="text-button" id="resetButton">Reset</button></div>
+    <section class="route-section" aria-labelledby="routeTitle">
+      <div class="section-heading"><div><p class="section-note">Weekly call sheet</p><h2 id="routeTitle">Your seven fittings</h2></div><button class="text-button" id="resetButton">Reset progress</button></div>
       <div class="day-grid" id="dayGrid"></div>
     </section>
     <section class="badge-section">
-      <div class="section-heading"><div><span class="eyebrow">Mastery</span><h2>Badge cabinet</h2></div></div>
+      <div class="section-heading"><div><p class="section-note">Proof of practice</p><h2>Patch rail</h2></div></div>
       <div class="badge-grid" id="badgeGrid"></div>
     </section>
-    <section class="privacy-note"><span aria-hidden="true">🔒</span><div><strong>Private by design</strong><p>No account. No audio upload. Your answers stay in this browser.</p></div></section>
+    <section class="privacy-note"><span class="privacy-mark" aria-hidden="true">LOCAL</span><div><strong>Private by design</strong><p>No account. No audio upload. Your answers stay in this browser.</p></div></section>
   </template>
 
   <template id="missionTemplate">
     <section class="mission-head">
-      <button class="back-button" id="backButton">← Route</button>
+      <button class="back-button" id="backButton"><span aria-hidden="true">←</span> Weekly route</button>
       <div class="mission-number" id="missionNumber"></div>
       <h1 id="missionTitle"></h1>
       <p id="missionIntro"></p>

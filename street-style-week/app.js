@@ -17,6 +17,9 @@
   function earned(id){ return state.badges.includes(id); }
   function award(id){ if(id && !earned(id)){ state.badges.push(id); state.xp += 25; } }
   function completedCount(){ return DATA.days.filter(day => state.days[day.id]?.complete).length; }
+  function shortMark(value){
+    return value.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+  }
   function buildItems(dayNumber){
     const day=DATA.days[dayNumber-1];
     const source=DATA.days[Math.max(0,dayNumber-2)].questions;
@@ -30,13 +33,13 @@
     const done = completedCount();
     const pct = Math.round(done / DATA.days.length * 100);
     document.querySelector('#overallPercent').textContent = `${pct}%`;
-    document.querySelector('#overallBar').style.width = `${pct}%`;
+    document.querySelector('#overallBar').style.transform = `scaleX(${pct/100})`;
     const grid = document.querySelector('#dayGrid');
     DATA.days.forEach((day,index) => {
       const info = state.days[day.id];
       const button = document.createElement('button');
       button.className = `day-card ${info?.complete ? 'done' : ''}`;
-      button.innerHTML = `<div class="day-top"><span class="day-number">Day ${index+1}</span><span class="day-icon">${day.icon}</span></div><h3>${day.title}</h3><p>${day.short}</p><span class="day-status">${info?.complete ? `Complete · ${info.score}%` : info?.index ? 'Continue mission' : 'Start mission'} →</span>`;
+      button.innerHTML = `<div class="day-top"><span class="day-number">${String(index+1).padStart(2,'0')}</span></div><h3>${day.title}</h3><p>${day.short}</p><span class="day-status">${info?.complete ? `Complete · ${info.score}%` : info?.index ? 'Continue fitting' : 'Start fitting'} →</span>`;
       button.addEventListener('click',()=>{ location.hash=`day-${index+1}`; });
       grid.append(button);
     });
@@ -44,7 +47,7 @@
     DATA.badges.forEach(item => {
       const node = document.createElement('div');
       node.className = `badge ${earned(item.id) ? 'earned' : ''}`;
-      node.innerHTML = `<span class="badge-icon">${earned(item.id) ? item.icon : '🔒'}</span><strong>${item.name}</strong><small>${item.desc}</small>`;
+      node.innerHTML = `<span class="badge-icon">${earned(item.id) ? shortMark(item.name) : 'LOCK'}</span><strong>${item.name}</strong><small>${item.desc}</small>`;
       badges.append(node);
     });
     document.querySelector('#resetButton').addEventListener('click',()=>{
@@ -60,9 +63,9 @@
     document.querySelector('#missionNumber').textContent = `Day ${dayNumber} of 7`;
     document.querySelector('#missionTitle').textContent = day.title;
     document.querySelector('#missionIntro').textContent = day.intro;
-    document.querySelector('#missionTime').textContent = `◷ ${day.time}`;
+    document.querySelector('#missionTime').textContent = `TIME · ${day.time}`;
     const items=buildItems(dayNumber);
-    document.querySelector('#missionReward').textContent = `✦ ${items.length} challenges`;
+    document.querySelector('#missionReward').textContent = `${items.length} CHALLENGES`;
     document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
     const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
     session = {day,items,dayNumber,index:saved.complete?0:(saved.index||0),correct:saved.complete?0:(saved.correct||0),attempts:saved.complete?0:(saved.attempts||0),answers:saved.complete?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false};
@@ -73,7 +76,7 @@
     const {day,items,index} = session;
     const card = document.querySelector('#gameCard');
     const pct = Math.round(index / items.length * 100);
-    document.querySelector('#missionBar').style.width = `${pct}%`;
+    document.querySelector('#missionBar').style.transform = `scaleX(${pct/100})`;
     if(index >= items.length){ completeMission(); return; }
     const item = items[index];
     card.innerHTML = `<div class="round-label">Challenge ${index+1} / ${items.length}</div><h2 class="question">${item.q}</h2><p class="prompt-note">Say the complete answer aloud before you continue.</p><div id="interaction"></div><div id="feedback"></div>`;
@@ -131,12 +134,12 @@
   }
 
   async function setupRecorder(button,audio){
-    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ button.textContent='Recorder unavailable — practise aloud'; button.disabled=true; return; }
+    if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ button.textContent='Recorder unavailable: practise aloud'; button.disabled=true; return; }
     let recorder,chunks=[];
     button.addEventListener('click',async()=>{
       if(recorder?.state==='recording'){recorder.stop();button.textContent='● Record again';button.classList.remove('recording');return;}
       try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});recorder=new MediaRecorder(stream);chunks=[];recorder.ondataavailable=e=>chunks.push(e.data);recorder.onstop=()=>{audio.src=URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType}));audio.classList.remove('hidden');stream.getTracks().forEach(t=>t.stop());};recorder.start();button.textContent='■ Stop recording';button.classList.add('recording');}
-      catch{button.textContent='Microphone blocked — practise aloud';button.disabled=true;}
+      catch{button.textContent='Microphone blocked: practise aloud';button.disabled=true;}
     });
   }
 
@@ -158,9 +161,9 @@
     if(score>=70)award(session.day.badge);
     if(completedCount()===DATA.days.length)award('week');
     save();
-    document.querySelector('#missionBar').style.width='100%';
+    document.querySelector('#missionBar').style.transform='scaleX(1)';
     const card=document.querySelector('#gameCard');
-    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'✨':'🌱'}</div><h2>${score>=70?'Mission complete!':'Good practice!'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery reward.':'Repeat this mission tomorrow to strengthen the difficult words.'}</p><button class="primary" id="routeButton">Back to the route</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><button class="primary" id="routeButton">Back to the route</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
     card.querySelector('#routeButton').addEventListener('click',()=>location.hash='home');
     card.querySelector('#summaryButton')?.addEventListener('click',copySummary);
   }
