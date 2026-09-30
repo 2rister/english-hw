@@ -62,12 +62,11 @@ h1 {
   content:""; position:absolute; top:-10px; left:50%; width:58px; height:22px;
   transform:translateX(-50%); background:rgba(255,253,247,.72);
 }
-.pass-row { display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid var(--ink); padding-bottom:12px; font-size:.65rem; }
+.pass-row { display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid var(--ink); padding-bottom:12px; font-size:.72rem; }
 .pass-code { margin:20px 0 42px; font-size:clamp(2rem,4vw,3.1rem); font-weight:900; letter-spacing:-.05em; line-height:.9; }
 .progress-copy { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; font-size:.73rem; font-variant-numeric:tabular-nums; }
 .progress-track { height:9px; overflow:hidden; background:rgba(21,21,21,.18); border-radius:999px; }
 .progress-track span { display:block; width:100%; height:100%; background:var(--ink); border-radius:inherit; transform:scaleX(0); transform-origin:left; transition:transform 220ms var(--ease); }
-.pass-row { font-size:.72rem; }
 .pass-name { margin-top:14px; font-size:.7rem; font-weight:800; letter-spacing:.08em; }
 
 .section-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; margin:54px 2px 18px; }
@@ -112,7 +111,7 @@ h2 { margin:4px 0 0; font-size:clamp(1.9rem,5vw,3.25rem); line-height:1; letter-
 .badge strong { font-size:.8rem; }
 .badge small { margin-top:5px; font-size:.75rem; line-height:1.35; }
 .privacy-note { display:flex; gap:16px; align-items:flex-start; margin-top:32px; padding-top:18px; border-top:1px solid var(--line); }
-.privacy-mark { padding:5px 7px; background:var(--ink); color:var(--sheet); font-size:.68rem; font-weight:800; letter-spacing:.07em; }
+.privacy-mark { padding:5px 7px; background:var(--ink); color:var(--sheet); font-size:.7rem; font-weight:800; letter-spacing:.07em; }
 .privacy-note p { margin:3px 0 0; color:var(--muted); font-size:.78rem; }
 
 .mission-head { padding:8px 0 26px; border-bottom:2px solid var(--ink); }
@@ -170,7 +169,7 @@ audio { width:100%; margin-top:12px; }
 .completion { max-width:520px; margin:0 auto; text-align:center; }
 .completion-icon {
   display:grid; place-items:center; width:64px; height:64px; margin:0 auto;
-  border:2px solid var(--ink); border-radius:50%; background:var(--signal); font-size:.62rem; font-weight:900;
+  border:2px solid var(--ink); border-radius:50%; background:var(--signal); font-size:.72rem; font-weight:900;
 }
 .completion h2 { margin:18px 0 10px; }
 .completion p { color:var(--muted); }

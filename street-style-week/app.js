@@ -169,7 +169,7 @@
   }
 
   async function copySummary(){
-    const lines=['Street Style Quest — weekly summary',...DATA.days.map((d,i)=>`Day ${i+1}: ${state.days[d.id]?.complete?`${state.days[d.id].score}%`:'not complete'}`),`Badges: ${state.badges.length}/${DATA.badges.length}`,`XP: ${state.xp}`];
+    const lines=['Street Style Quest: weekly summary',...DATA.days.map((d,i)=>`Day ${i+1}: ${state.days[d.id]?.complete?`${state.days[d.id].score}%`:'not complete'}`),`Badges: ${state.badges.length}/${DATA.badges.length}`,`XP: ${state.xp}`];
     const text=lines.join('\n'); const box=document.querySelector('#summaryBox'); box.textContent=text; box.classList.remove('hidden');
     try{await navigator.clipboard.writeText(text);document.querySelector('#summaryButton').textContent='Copied!';}catch{document.querySelector('#summaryButton').textContent='Select the summary below';}
   }
