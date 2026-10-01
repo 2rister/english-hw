@@ -31,6 +31,8 @@
     finally { syncing=false; if(syncPending && restored) syncTimer=setTimeout(syncProgress,15000); }
   }
   async function start(){
+    app.inert = Boolean(tutoring?.authenticated);
+    updateXP(); route();
     if(tutoring?.authenticated){
       try {
         const result=await tutoring.call('load'); revision=result.revision;
@@ -40,6 +42,7 @@
         restored=true; save(); tutoring.setStatus('Progress connected.');
       } catch(error){ tutoring.setStatus(error.message + ' Reopen the app to reconnect.'); }
     }
+    app.inert = false;
     updateXP(); route();
   }
   function updateXP(){ document.querySelector('#xpValue').textContent = state.xp || 0; }
@@ -58,7 +61,7 @@
   function route(){
     tutoring?.back(location.hash);
     if(location.hash.startsWith('#day-')) renderMission(Number(location.hash.replace('#day-','')));
-    else if(location.hash==='#catalog' || !location.hash && document.body.dataset.start==='catalog') renderCatalog();
+    else if(location.hash==='#catalog' || document.body.dataset.start==='catalog' && location.hash!=='#home') renderCatalog();
     else renderHome();
   }
   function renderCatalog(){
@@ -75,6 +78,7 @@
       progress.textContent=unit.id==='street-style' ? `${completedCount()} of 7 days complete` : '';
       copy.append(label,title,description,progress);
       const action=document.createElement('span'); action.className='unit-action'; action.textContent=unit.available ? (Object.values(state.days).some(day=>day.index || day.complete) ? 'Continue →' : 'Start →') : 'Coming soon';
+      if(tutoring?.authenticated && !restored){ button.disabled=true; action.textContent='Connecting…'; }
       button.append(number,copy,action); button.addEventListener('click',()=>{unit.href ? location.assign(unit.href) : location.hash='home';}); grid.append(button);
     }
   }

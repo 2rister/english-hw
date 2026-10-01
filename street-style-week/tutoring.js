@@ -1,9 +1,18 @@
 (() => {
   'use strict';
   const tg = window.Telegram?.WebApp;
+  // Dismiss Telegram's native splash before authentication or network work.
+  tg?.ready();
   const authenticated = Boolean(tg?.initData);
   const endpoint = 'https://script.google.com/macros/s/AKfycbx9CUvXuQ827FfwviQ0JxtdBl7_K7Jg54c-O9g4EmVjGiJwlK8shWJtrz1yOXHpkd5V4g/exec?tutoring=1';
-  const channel = crypto.randomUUID();
+  const uuid = () => {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  };
+  const channel = uuid();
   const calls = new Map();
   let bridge, bridgeOrigin, resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -12,7 +21,7 @@
   document.querySelector('.topbar').after(status);
   const setStatus = text => { status.textContent = text; };
   if (authenticated) {
-    tg.ready(); tg.expand();
+    tg.expand();
     tg.setHeaderColor?.('#f3f0e8'); tg.setBackgroundColor?.('#f3f0e8');
     const safeArea = () => {
       for (const side of ['top','bottom','left','right']) {
@@ -43,7 +52,7 @@
   async function call(action, state, revision) {
     await Promise.race([ready,new Promise((_,reject) => setTimeout(() => reject(new Error('Connection unavailable. Your work is saved on this device.')),20000))]);
     return new Promise((resolve,reject) => {
-      const id = crypto.randomUUID();
+      const id = uuid();
       const timeout = setTimeout(() => { calls.delete(id); reject(new Error('Connection timed out. Your work is saved on this device.')); },25000);
       calls.set(id,{resolve,reject,timeout});
       bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:'street-style',initData:tg.initData,state,revision}},bridgeOrigin);
