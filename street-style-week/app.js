@@ -1,7 +1,9 @@
 (() => {
   'use strict';
   const DATA = window.QUEST_DATA;
-  const KEY = 'street-style-quest-v1';
+  const tutoring = window.TUTORING;
+  const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
+  let revision = 0, syncTimer, syncing = false, syncPending = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -12,7 +14,34 @@
     try { return {...freshState(), ...JSON.parse(localStorage.getItem(KEY) || '{}')}; }
     catch { return freshState(); }
   }
-  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); updateXP(); }
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify(state)); updateXP();
+    if(tutoring?.authenticated){ localStorage.setItem(KEY+':pending','1'); }
+    if(tutoring?.authenticated && restored){ syncPending=true; clearTimeout(syncTimer); syncTimer=setTimeout(syncProgress,900); }
+  }
+  async function syncProgress(){
+    if(syncing || !syncPending || !restored) return;
+    syncing=true; syncPending=false; tutoring.setStatus('Saving your progress…');
+    try {
+      const result=await tutoring.call('save',JSON.parse(JSON.stringify(state)),revision);
+      if(result.conflict){ restored=false; throw new Error('Progress changed on another device. Reopen the app to continue.'); }
+      if(!result.saved) throw new Error('Progress could not be saved.');
+      revision=result.revision; localStorage.setItem(KEY+':revision',String(revision)); if(!syncPending) localStorage.removeItem(KEY+':pending'); tutoring.setStatus(result.delivery==='pending' ? 'Progress saved · tutor report waiting for delivery.' : 'Progress saved.');
+    } catch(error){ syncPending=true; tutoring.setStatus(error.message); }
+    finally { syncing=false; if(syncPending && restored) syncTimer=setTimeout(syncProgress,15000); }
+  }
+  async function start(){
+    if(tutoring?.authenticated){
+      try {
+        const result=await tutoring.call('load'); revision=result.revision;
+        if(localStorage.getItem(KEY+':pending')){
+          if(Number(localStorage.getItem(KEY+':revision') || 0)!==revision) throw new Error('Newer progress exists on another device. Your local work is kept; contact your tutor before continuing.');
+        } else if(result.state) state={...freshState(),...result.state};
+        restored=true; save(); tutoring.setStatus('Progress connected.');
+      } catch(error){ tutoring.setStatus(error.message + ' Reopen the app to reconnect.'); }
+    }
+    updateXP(); route();
+  }
   function updateXP(){ document.querySelector('#xpValue').textContent = state.xp || 0; }
   function earned(id){ return state.badges.includes(id); }
   function award(id){ if(id && !earned(id)){ state.badges.push(id); state.xp += 25; } }
@@ -26,10 +55,37 @@
     const sprint=source.filter(q=>['mc','type'].includes(q.type)).slice(0,6).map(q=>({...q,q:`Memory sprint · ${q.q}`}));
     return [...day.questions,...sprint];
   }
-  function route(){ location.hash.startsWith('#day-') ? renderMission(Number(location.hash.replace('#day-',''))) : renderHome(); }
+  function route(){
+    tutoring?.back(location.hash);
+    if(location.hash.startsWith('#day-')) renderMission(Number(location.hash.replace('#day-','')));
+    else if(location.hash==='#catalog' || !location.hash && document.body.dataset.start==='catalog') renderCatalog();
+    else renderHome();
+  }
+  function renderCatalog(){
+    app.replaceChildren(document.querySelector('#catalogTemplate').content.cloneNode(true));
+    const grid=document.querySelector('#unitGrid');
+    for(const [index,unit] of tutoring.units.entries()){
+      const button=document.createElement('button'); button.className='unit-card'; button.disabled=!unit.available;
+      const number=document.createElement('span'); number.className='unit-number'; number.textContent=String(index+1).padStart(2,'0');
+      const copy=document.createElement('span'); copy.className='unit-copy';
+      const label=document.createElement('small'); label.textContent=unit.subtitle;
+      const title=document.createElement('strong'); title.textContent=unit.title;
+      const description=document.createElement('span'); description.textContent=unit.description;
+      const progress=document.createElement('span'); progress.className='unit-progress';
+      progress.textContent=unit.id==='street-style' ? `${completedCount()} of 7 days complete` : '';
+      copy.append(label,title,description,progress);
+      const action=document.createElement('span'); action.className='unit-action'; action.textContent=unit.available ? (completedCount() ? 'Continue →' : 'Start →') : 'Coming soon';
+      button.append(number,copy,action); button.addEventListener('click',()=>{unit.href ? location.assign(unit.href) : location.hash='home';}); grid.append(button);
+    }
+  }
 
   function renderHome(){
     app.replaceChildren(document.querySelector('#homeTemplate').content.cloneNode(true));
+    document.querySelector('#catalogButton').addEventListener('click',()=>{location.hash='catalog';});
+    if(tutoring?.authenticated){
+      document.querySelector('.hero-copy>p').textContent='Complete one 20 to 25 minute mission each day. Your tutor receives your results privately.';
+      document.querySelector('.privacy-note').innerHTML='<span class="privacy-mark" aria-hidden="true">PRIVATE</span><div><strong>Your personal learning space</strong><p>Your progress and writing are saved for your tutor. Audio stays on this device.</p></div>';
+    }
     const done = completedCount();
     const pct = Math.round(done / DATA.days.length * 100);
     document.querySelector('#overallPercent').textContent = `${pct}%`;
@@ -51,7 +107,7 @@
       badges.append(node);
     });
     document.querySelector('#resetButton').addEventListener('click',()=>{
-      if(confirm('Reset all Street Style Quest progress on this device?')){ localStorage.removeItem(KEY); state=freshState(); renderHome(); updateXP(); }
+      if(confirm('Reset all Street Style Quest progress on this device?')){ localStorage.removeItem(KEY); state=freshState(); save(); renderHome(); updateXP(); }
     });
     updateXP();
   }
@@ -68,7 +124,7 @@
     document.querySelector('#missionReward').textContent = `${items.length} CHALLENGES`;
     document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
     const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
-    session = {day,items,dayNumber,index:saved.complete?0:(saved.index||0),correct:saved.complete?0:(saved.correct||0),attempts:saved.complete?0:(saved.attempts||0),answers:saved.complete?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false};
+    session = {day,items,dayNumber,index:saved.complete?0:(saved.index||0),correct:saved.complete?0:(saved.correct||0),attempts:saved.complete?0:(saved.attempts||0),answers:saved.complete?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false,wrongAnswers:[]};
     renderQuestion();
   }
 
@@ -80,7 +136,7 @@
     if(index >= items.length){ completeMission(); return; }
     const item = items[index];
     card.innerHTML = `<div class="round-label">Challenge ${index+1} / ${items.length}</div><h2 class="question">${item.q}</h2><p class="prompt-note">Say the complete answer aloud before you continue.</p><div id="interaction"></div><div id="feedback"></div>`;
-    session.hintLevel=0; session.wrongThisQuestion=false; session.usedHint=false;
+    session.hintLevel=0; session.wrongThisQuestion=false; session.usedHint=false; session.wrongAnswers=[];
     if(item.type==='mc') renderMC(item);
     else if(item.type==='type') renderType(item);
     else if(item.type==='writing') renderWriting(item);
@@ -95,7 +151,7 @@
       session.attempts++;
       const ok=normalise(btn.textContent)===normalise(item.a);
       if(ok){ btn.classList.add('correct'); finishAnswer(true,item); }
-      else { btn.classList.add('wrong'); session.wrongThisQuestion=true; showTry(); revealHintButton(item); }
+      else { btn.classList.add('wrong'); session.wrongThisQuestion=true; session.wrongAnswers.push(btn.textContent); showTry(); revealHintButton(item); }
     }));
   }
 
@@ -109,7 +165,7 @@
       const accepted=[item.a,...(item.accept||[])].map(normalise);
       const ok=accepted.includes(normalise(input.value));
       if(ok){ input.disabled=true; finishAnswer(true,item); }
-      else { session.wrongThisQuestion=true; showTry(); revealHintButton(item); }
+      else { session.wrongThisQuestion=true; session.wrongAnswers.push(input.value.trim()); showTry(); revealHintButton(item); }
     };
     box.querySelector('#checkButton').addEventListener('click',check);
     input.addEventListener('keydown',e=>{if(e.key==='Enter')check();});
@@ -120,8 +176,12 @@
     box.innerHTML=`<p class="prompt-note">Write freely. This task uses a self-check because good writing can have many correct answers.</p><textarea class="writing-box" id="writingBox" placeholder="Write here…"></textarea><div class="checklist">${item.checks.map((c,i)=>`<label class="check-item"><input type="checkbox" data-check="${i}"><span>${c}</span></label>`).join('')}</div><div class="actions"><span class="prompt-note" id="wordCount">0 words · aim for ${item.minWords}+</span><button class="primary" id="nextButton" disabled>Save & continue</button></div>`;
     const area=box.querySelector('#writingBox'), button=box.querySelector('#nextButton'), checks=[...box.querySelectorAll('[data-check]')];
     const validate=()=>{const words=area.value.trim()?area.value.trim().split(/\s+/).length:0;box.querySelector('#wordCount').textContent=`${words} words · aim for ${item.minWords}+`;button.disabled=words<item.minWords||checks.some(c=>!c.checked);};
-    area.addEventListener('input',validate); checks.forEach(c=>c.addEventListener('change',validate));
-    button.addEventListener('click',()=>{ session.attempts++; session.answers.push({q:item.q,production:true,words:area.value.trim().split(/\s+/).length}); session.correct++; advance(); });
+    area.value=state.days[session.day.id]?.drafts?.[session.index] || ''; validate();
+    area.addEventListener('input',()=>{
+      validate(); const day=state.days[session.day.id] || {};
+      state.days[session.day.id]={...day,index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false,drafts:{...day.drafts,[session.index]:area.value.slice(0,4000)}}; save();
+    }); checks.forEach(c=>c.addEventListener('change',validate));
+    button.addEventListener('click',()=>{ session.attempts++; session.answers.push({q:item.q,production:true,text:area.value.trim().slice(0,4000),status:'TEACHER_PENDING',words:area.value.trim().split(/\s+/).length}); session.correct++; advance(); });
   }
 
   function renderSpeaking(item){
@@ -129,7 +189,7 @@
     box.innerHTML=`<div class="word-chips">${item.prompts.map(p=>`<span class="word-chip">${p}</span>`).join('')}</div><div class="recorder"><p><strong>Voice Booth</strong><br><span class="prompt-note">Record, listen, improve. The audio stays on this device and disappears when you leave the page.</span></p><button class="secondary" id="recordButton">● Start recording</button><audio id="playback" controls class="hidden"></audio><div class="checklist">${item.prompts.map((p,i)=>`<label class="check-item"><input type="checkbox" data-check="${i}"><span>${p}</span></label>`).join('')}</div></div><div class="actions"><button class="primary" id="nextButton" disabled>Finish mission</button></div>`;
     const button=box.querySelector('#nextButton'),checks=[...box.querySelectorAll('[data-check]')];
     checks.forEach(c=>c.addEventListener('change',()=>button.disabled=checks.some(x=>!x.checked)));
-    button.addEventListener('click',()=>{session.attempts++;session.correct++;advance();});
+    button.addEventListener('click',()=>{session.attempts++;session.correct++;session.answers.push({q:item.q,speaking:true,status:'SELF_REPORTED'});advance();});
     setupRecorder(box.querySelector('#recordButton'),box.querySelector('#playback'));
   }
 
@@ -149,7 +209,7 @@
     button.classList.remove('hidden'); button.onclick=()=>{const hint=item.hint[Math.min(session.hintLevel,item.hint.length-1)];session.hintLevel++;session.usedHint=true;document.querySelector('#feedback').innerHTML=`<div class="hint"><strong>Hint ${session.hintLevel}:</strong> ${hint}</div>`;if(session.hintLevel>=item.hint.length)button.textContent='Show hint again';};
   }
   function finishAnswer(ok,item){
-    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,recovered:session.usedHint});save();}
+    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200))});save();}
   }
   function advance(){session.index++;state.days[session.day.id]={index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false};save();renderQuestion();}
 
@@ -175,5 +235,6 @@
   }
 
   window.addEventListener('hashchange',route);
-  updateXP(); route();
+  window.addEventListener('online',()=>{if(restored && tutoring?.authenticated){syncPending=true;syncProgress();}});
+  start();
 })();
