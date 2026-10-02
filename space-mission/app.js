@@ -39,9 +39,9 @@ function welcome(message='') {
   view('welcome',`<section class="welcome"><p class="eyebrow">Learn Core / Gateway B1 / Unit 1</p>
     <h1 class="title">Beyond<span>Earth.</span></h1><p class="hint">43 words. Two stages. One mission.</p>
     <div class="carousel">${button('‹','previous','arrow')}<img class="astronaut" src="${image}" onerror="this.onerror=null;this.src='./assets/astronaut.jpg'" alt="Astronaut in a ${esc(pupil.color)} suit">${button('›','next','arrow')}</div>
-    <h2 class="name">${esc(pupil.name)}</h2><p class="hint">Choose your astronaut</p>
+    <h2 class="name">${esc(pupil.displayName||pupil.name)}</h2><p class="hint">Choose your astronaut</p>
     <div class="actions">${button('Launch mission →','launch')}${button(sound.enabled?'Sound on · ♫':'Sound off · ♫','sound','secondary')}
-    ${!api.authenticated?button('Open in Telegram ↗','telegram','secondary'):''}</div>
+    </div>
     <p class="hint">${esc(message || (api.authenticated?'Complete both stages → grade 5. Mission failed → grade 2.':'Browser practice. Grades are recorded when you open from Telegram.'))}</p></section>`);
   document.querySelector('#sound').textContent=sound.enabled?'Sound on':'Sound off';
 }
@@ -55,16 +55,10 @@ function askName() {
   modal('Your astronaut',`<label for="nameInput">Your name</label><input class="field" id="nameInput" autocomplete="name" maxlength="60" placeholder="First and last name" value="${esc(otherName)}">`,button('Continue →','name-save')+button('Back','modal-close','secondary'));
   document.querySelector('#nameInput').focus();
 }
-function instruction() {
-  modal('Flight briefing',`<p><strong>Stage 1:</strong> read the definition. Three words approach your rocket. You have <strong>5 seconds</strong>.</p>
-    <p>Swipe left / up / right to pick a lane. You can also tap a word. The answer locks when the timer ends.</p>
-    <p><strong>Stage 2:</strong> complete each sentence. Tap one answer within <strong>20 seconds</strong>.</p>
-    <p>Three hearts for the whole mission. Lose them all and start again. Attempts are unlimited.</p>`,button('Ready for launch →','start')+button('Back','modal-close','secondary'));
-}
 async function launch() {
   await sound.unlock().catch(()=>{});
   if (astronaut===roster.length && !otherName) { askName();return; }
-  instruction();
+  await start();
 }
 async function start() {
   closeModal(); const pupil=roster[astronaut]||{id:'other',name:otherName};
@@ -196,12 +190,12 @@ async function bootstrap() {
       modal('Resume mission','<p>Continue your saved flight or end this attempt and start again.</p>',button('Resume flight','restore')+button('End attempt','quit','secondary'));return;
     }
     welcome();
-  } catch(error) { welcome(error.message);modal('Connection unavailable',`<p>${esc(error.message)}</p>`,button('Retry','reload')+button('Open in Telegram','telegram','secondary')); }
+  } catch(error) { welcome(error.message);modal('Connection unavailable',`<p>${esc(error.message)}</p>`,button('Retry','reload')); }
 }
 async function action(name) {
   if (name==='previous'||name==='next') { astronaut=(astronaut+(name==='next'?1:roster.length))%(roster.length+1);welcome(); }
   if (name==='launch') await launch();if (name==='start') await start();
-  if (name==='name-save') { const value=document.querySelector('#nameInput').value.trim();if (value.length<2 || value.length>60 || /[<>\x00-\x1f]/.test(value)) { document.querySelector('#nameInput').setCustomValidity('Enter your name using letters, spaces and normal punctuation.');document.querySelector('#nameInput').reportValidity();return; } otherName=value;closeModal();welcome();instruction(); }
+  if (name==='name-save') { const value=document.querySelector('#nameInput').value.trim();if (value.length<2 || value.length>60 || /[<>\x00-\x1f]/.test(value)) { document.querySelector('#nameInput').setCustomValidity('Enter your name using letters, spaces and normal punctuation.');document.querySelector('#nameInput').reportValidity();return; } otherName=value;closeModal();await start(); }
   if (name==='modal-close') closeModal();if (name==='retry') await runPending();
   if (name==='pause') pause();if (name==='resume') await resume();if (name==='quit') await quit();
   if (name==='restore') { closeModal();await sound.unlock().catch(()=>{});showQuestion(remaining); }
@@ -211,7 +205,6 @@ async function action(name) {
   if (name==='sound') { await sound.unlock().catch(()=>{});sound.set(!sound.enabled);updateHud();if (!state) welcome(); }
   if (name==='delivery') { state=await api.call('resume',{attempt:state.attempt});await result(); }
   if (name==='reload') location.reload();
-  if (name==='telegram') { const url='https://t.me/CheckUphw_bot?start=space84';telegram?.openTelegramLink?telegram.openTelegramLink(url):location.assign(url); }
 }
 document.addEventListener('click',event=>{
   const lane=event.target.closest('[data-lane]');if (lane) select(Number(lane.dataset.lane));
