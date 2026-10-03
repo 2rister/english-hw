@@ -5,7 +5,6 @@ import {SpaceScene} from './scene.js';
 const api=new SpaceAPI(), sound=new Sound(), scene=new SpaceScene(document.querySelector('#space'));
 const screen=document.querySelector('#screen'), hud=document.querySelector('#hud');
 const storage='orbital:'+ (telegram?.initDataUnsafe?.user?.id||'practice');
-const colors=['amber','blue','green','red','violet','white'];
 let roster=[], astronaut=0, otherName='', state=null, selected=null, pending=null;
 let running=false, remaining=0, deadline=0, tick, paused=false, busy=false, afterFeedback=null;
 let flightOffset=0, flightDistance=180;
@@ -179,7 +178,7 @@ async function bootstrap() {
   setupTelegram();welcome('Connecting to mission control…');
   try {
     const config=await api.call('config');roster=config.roster;
-    if (!roster.length) roster=colors.map((color,i)=>({id:'demo'+i,name:'Explorer '+(i+1),color}));
+    if (!roster.length) throw new Error('Astronaut roster is unavailable. Please try again.');
     const old=saved();astronaut=Math.min(old?.astronaut||0,roster.length);otherName=old?.otherName||'';
     if (old?.pending) { state=old.state;pending=old.pending;await runPending();return; }
     if (old?.state?.delivery==='pending') { state=await api.call('resume',{attempt:old.state.attempt});await result();return; }
