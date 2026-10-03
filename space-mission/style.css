@@ -228,6 +228,9 @@ button { color: inherit; }
 .feedback { margin: 14px 0; min-height: 24px; color: var(--accent); font-size: 15px; line-height: 1.5; }
 .feedback.correct { color: #a5ecc0; }
 .feedback.wrong { color: #ffb5a3; }
+.flight-feedback.confirmed .title { color: var(--violet); text-shadow: 0 0 26px rgba(190, 158, 255, .44); }
+.flight-feedback.impact { animation: cockpit-impact .42s cubic-bezier(.36,.07,.19,.97); }
+.flight-feedback.impact .title { color: #ffb5a3; }
 .stage-one .lanes, body[data-stage="1"] .mission .lanes { position: absolute; bottom: 112px; left: 0; right: 0; }
 .stage-one > .hint, body[data-stage="1"] .mission > .hint { position: absolute; bottom: 72px; left: 0; right: 0; text-align: center; }
 .stage-one > .feedback, body[data-stage="1"] .mission > .feedback { position: absolute; bottom: 210px; left: 0; right: 0; text-align: center; background: rgba(7, 11, 17, .75); padding: 8px; }
@@ -252,6 +255,7 @@ body[data-stage="2"], body:has(.stage-two) { --accent: #be9eff; --accent-rgb: 19
 .result .actions { margin-top: 12px; }
 .checking { color: var(--muted); font-size: 14px; }
 .checking::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 10px; border-radius: 50%; background: var(--accent); animation: beacon 1.2s ease-in-out infinite; }
+@keyframes cockpit-impact { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-12px) rotate(-.6deg); } 55% { transform: translateX(10px) rotate(.45deg); } 75% { transform: translateX(-4px); } }
 .modal { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: calc(var(--safe-top) + var(--content-top) + 20px) 20px calc(var(--safe-bottom) + 20px); background: rgba(3, 7, 12, .85); backdrop-filter: blur(16px); overflow-y: auto; }
 .dialog { width: min(100%, 400px); margin: auto; padding: 26px; border: 1px solid var(--line); border-top-color: var(--accent); border-radius: 4px; background: #111b26; box-shadow: 0 24px 100px rgba(0, 0, 0, .6); }
 .dialog h2 { margin: 0 0 16px; font: 600 30px/1.1 var(--display); }
