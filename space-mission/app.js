@@ -1,10 +1,10 @@
-import {SpaceAPI,telegram,uuid} from './api.js';
+import {SpaceAPI,telegram,uuid} from './api.js?v=20261003-web';
 import {Sound} from './audio.js';
 import {SpaceScene} from './scene.js';
 
 const api=new SpaceAPI(), sound=new Sound(), scene=new SpaceScene(document.querySelector('#space'));
 const screen=document.querySelector('#screen'), hud=document.querySelector('#hud');
-const storage='orbital:'+ (telegram?.initDataUnsafe?.user?.id||'practice');
+const storage='orbital:'+ (telegram?.initDataUnsafe?.user?.id||api.browserId);
 let roster=[], astronaut=0, otherName='', state=null, selected=null, pending=null;
 let running=false, remaining=0, deadline=0, tick, paused=false, busy=false, afterFeedback=null;
 let flightOffset=0, flightDistance=180;
@@ -41,7 +41,7 @@ function welcome(message='') {
     <h2 class="name">${esc(pupil.displayName||pupil.name)}</h2><p class="hint">Choose your astronaut</p>
     <div class="actions">${button('Launch mission →','launch')}${button(sound.enabled?'Sound on · ♫':'Sound off · ♫','sound','secondary')}
     </div>
-    <p class="hint">${esc(message || (api.authenticated?'Complete both stages → grade 5. Mission failed → grade 2.':'Browser practice. Grades are recorded when you open from Telegram.'))}</p></section>`);
+    <p class="hint">${esc(message || ('Complete both stages → grade 5. Mission failed → grade 2.'))}</p></section>`);
   document.querySelector('#sound').textContent=sound.enabled?'Sound on':'Sound off';
 }
 function modal(title,content,actions) {
@@ -158,7 +158,7 @@ async function result() {
   persist();
 }
 function receipt() {
-  if (state.practice) return 'Practice result. Open in Telegram to record your grade.';
+  if (state.practice) return 'Practice result.';
   if (state.delivery==='sent') return `Grade saved. Report sent to your teacher through the bot.${state.bestGrade===5?' Final assignment grade: 5.':''}`;
   return 'Grade saved. Bot delivery is pending. Tap Retry sending result.';
 }

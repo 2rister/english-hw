@@ -9,6 +9,12 @@ export function uuid() {
 }
 export class SpaceAPI {
   constructor() {
+    this.browserId=uuid();
+    try {
+      const saved=localStorage.getItem('orbital-browser');
+      if (/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(saved||'')) this.browserId=saved;
+      else localStorage.setItem('orbital-browser',this.browserId);
+    } catch (_) { /* This flight still works when persistent storage is unavailable. */ }
     this.authenticated=Boolean(telegram?.initData); this.channel=uuid(); this.calls=new Map();
     this.ready=new Promise(resolve=>{this.resolveReady=resolve;});
     const frame=document.createElement('iframe'); frame.hidden=true; frame.title='Mission connection';
@@ -31,7 +37,7 @@ export class SpaceAPI {
     try { await Promise.race([this.ready,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Connection unavailable. Tap Retry.')),20000);})]); }
     finally { clearTimeout(timer); }
     return new Promise((resolve,reject)=>{
-      const id=uuid(), request={...payload,action,initData:telegram?.initData||''};
+      const id=uuid(), request={...payload,action,initData:telegram?.initData||'',browserId:this.browserId};
       const timer=setTimeout(()=>{this.calls.delete(id);reject(new Error('Connection timed out. Your answer is kept. Tap Retry.'));},30000);
       this.calls.set(id,{resolve,reject,timer});
       this.bridge.postMessage({kind:'space-request',channel:this.channel,id,request},this.origin);
