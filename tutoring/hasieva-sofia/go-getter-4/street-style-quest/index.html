@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#151515">
+  <meta name="description" content="A seven-day English vocabulary and speaking quest for Street Style week.">
+  <title>Street Style Quest</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23151515'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Arial,sans-serif' font-size='20' font-weight='800' fill='%23b9e33d'%3ESS/Q%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=mini1">
+  <script src="../street-style-week/telegram-web-app.js?v=20261001"></script>
+</head>
+<body>
+  <a class="skip-link" href="#app">Skip to the mission</a>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="Street Style Quest home">
+      <span class="brand-mark" aria-hidden="true">SS/Q</span><span>Street Style Quest</span>
+    </a>
+    <div class="xp-pill"><span>XP</span><strong id="xpValue">0</strong></div>
+  </header>
+
+  <main id="app" class="shell" aria-live="polite"></main>
+
+  <template id="homeTemplate">
+    <button class="back-button" id="catalogButton">← All units</button>
+    <section class="hero" aria-labelledby="homeTitle">
+      <div class="hero-copy">
+        <h1 id="homeTitle">Wear the words.<br><span>Own the week.</span></h1>
+        <p>Complete one 20 to 25 minute mission each day. Your work stays on this device.</p>
+      </div>
+      <div class="week-pass" aria-label="Weekly progress">
+        <div class="pass-row"><span>ACCESS</span><strong>ALL AREAS</strong></div>
+        <div class="pass-code">WEEK / 01</div>
+        <div class="progress-copy"><strong id="overallLabel">Route complete</strong><span id="overallPercent">0%</span></div>
+        <div class="progress-track"><span id="overallBar"></span></div>
+        <div class="pass-name">SPEAK / WRITE / REMEMBER</div>
+      </div>
+    </section>
+    <section class="route-section" aria-labelledby="routeTitle">
+      <div class="section-heading"><div><p class="section-note">Weekly call sheet</p><h2 id="routeTitle">Your seven fittings</h2></div><button class="text-button" id="resetButton">Reset progress</button></div>
+      <div class="day-grid" id="dayGrid"></div>
+    </section>
+    <section class="badge-section">
+      <div class="section-heading"><div><p class="section-note">Proof of practice</p><h2>Patch rail</h2></div></div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </section>
+    <section class="privacy-note"><span class="privacy-mark" aria-hidden="true">LOCAL</span><div><strong>Private by design</strong><p>No account. No audio upload. Your answers stay in this browser.</p></div></section>
+  </template>
+
+  <template id="catalogTemplate">
+    <section class="catalog-head"><p class="section-note">Personal tutoring</p><h1>Your learning.<br><span>One unit at a time.</span></h1><p>Choose a unit and pick up where you left off.</p></section>
+    <section aria-labelledby="unitsTitle"><div class="section-heading"><div><p class="section-note">Your collection</p><h2 id="unitsTitle">Learning units</h2></div></div><div id="unitGrid" class="unit-grid"></div></section>
+    <p class="catalog-footer">Your next unit will appear here when it is ready.</p>
+  </template>
+
+  <template id="missionTemplate">
+    <section class="mission-head">
+      <button class="back-button" id="backButton"><span aria-hidden="true">←</span> Weekly route</button>
+      <div class="mission-number" id="missionNumber"></div>
+      <h1 id="missionTitle"></h1>
+      <p id="missionIntro"></p>
+      <div class="mission-meta"><span id="missionTime"></span><span id="missionReward"></span></div>
+      <div class="progress-track mission-progress"><span id="missionBar"></span></div>
+    </section>
+    <section class="game-card" id="gameCard"></section>
+  </template>
+
+  <script src="content.js"></script>
+  <script src="tutoring.js?v=mini3"></script>
+  <script src="app.js?v=mini3"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "world": "backstage-fashion-call-sheet",
+  "mode": "operate",
+  "tokens": {
+    "paper": "#F3F0E8",
+    "sheet": "#FFFDF7",
+    "ink": "#151515",
+    "muted": "#5F5C55",
+    "signal": "#B9E33D",
+    "focus": "#2457FF",
+    "success": "#167A55",
+    "error": "#B9362E",
+    "surfaceRadius": "14px",
+    "controlRadius": "8px"
+  },
+  "font": "Archivo",
+  "primaryViewport": "390x844"
+}
