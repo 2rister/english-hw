@@ -12,6 +12,7 @@
 - [ ] Проверить на concept sheet и каждом v1 asset: маскот уверенно стоит на двух задних лапах, при этом сохраняет короткие Munchkin-пропорции и не получает человеческие руки.
 - [ ] До генерации ассетов подтвердить в используемом Higgsfield account права на коммерческое использование, watermark policy и поддержку выбранного Character/Soul workflow для оригинального AI-персонажа.
 - [ ] Собрать canonical reference pack и восемь v1 состояний; зафиксировать prompt, права и QA в asset manifests.
+- [ ] Не начинать P2 UI pilot до отдельного явного решения после утверждения библиотеки эмоций.
 - [ ] Провести пятисостояний pilot без изменения учебного контента, scoring, backend schema или расписания уведомлений.
 - [ ] Пройти mobile, Telegram WebView, accessibility, reduced-motion и learner/tutor pilot QA до расширения библиотеки эмоций.
 - [ ] Определить следующий модуль Go Getter 4 и добавить его как отдельную mission sequence, не меняя опубликованный Street Style Quest без явного запроса.

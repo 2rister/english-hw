@@ -6,7 +6,7 @@ Create an original, consistent mascot system for Sofia's private Go Getter 4 Min
 
 It must preserve the existing Street Style Quest identity: editorial backstage-fashion call sheet, paper/ink/acid-green palette, concise English, one clear next action, seven authored missions, local-first audio and progress boundaries.
 
-This document is a plan only. It authorizes no image generation, UI integration, notification changes, or deployment.
+This document is a plan only. The **current authorized scope is asset pre-production only**: define and generate an approved original cat plus its emotion library. It authorizes no UI integration, copy changes, notification changes, backend changes, or deployment. Those later stages require a separate explicit decision.
 
 ## Non-negotiable design constraints
 
@@ -152,7 +152,9 @@ Examples:
 | return | `Your next step is waiting.` | `You abandoned your quest.` |
 | voice | `Record, listen, improve.` | `Miso listened to you.` |
 
-## Integration plan — P2
+## Later integration plan — P2 (out of current scope)
+
+Do not begin this section while the current asset pre-production scope is active. It is retained only so each emotion is produced with a future learning purpose, without making any interface change now.
 
 ### Placement rules
 
