@@ -1,19 +1,16 @@
 # Backlog — Хасиева Софья · Go Getter 4 Mini App
 
-## Проверить перед следующей публикацией
+## Now — mascot assets only
 
-- [ ] Сверить, что URL и версия Apps Script backend соответствуют этому исходному контуру.
-- [ ] Прогнать end-to-end сценарий с тестовым подписанным Telegram `initData`; не использовать реальные данные ученицы в тестах.
-- [ ] Проверить реальную доставку первого запланированного напоминания и сохранить только технический факт доставки.
+- [ ] Approve Miso's concept: original bipedal ginger Munchkin, short legs, no human hands.
+- [ ] Confirm Higgsfield commercial-use/credit availability and create the canonical reference pack.
+- [ ] Produce and retain the v1 emotion set with prompt, rights and QA records.
 
-## Улучшения продукта
+## Paused — requires an explicit decision
 
-- [ ] Утвердить `Mascot Bible v1.0`: имя, четыре инвариантных признака, палитру, запреты и первый concept direction. См. `MASCOT_CONTENT_PLAN.md`.
-- [ ] Проверить на concept sheet и каждом v1 asset: маскот уверенно стоит на двух задних лапах, при этом сохраняет короткие Munchkin-пропорции и не получает человеческие руки.
-- [ ] До генерации ассетов подтвердить в используемом Higgsfield account права на коммерческое использование, watermark policy и поддержку выбранного Character/Soul workflow для оригинального AI-персонажа.
-- [ ] Собрать canonical reference pack и восемь v1 состояний; зафиксировать prompt, права и QA в asset manifests.
-- [ ] Не начинать P2 UI pilot до отдельного явного решения после утверждения библиотеки эмоций.
-- [ ] Провести пятисостояний pilot без изменения учебного контента, scoring, backend schema или расписания уведомлений.
-- [ ] Пройти mobile, Telegram WebView, accessibility, reduced-motion и learner/tutor pilot QA до расширения библиотеки эмоций.
-- [ ] Определить следующий модуль Go Getter 4 и добавить его как отдельную mission sequence, не меняя опубликованный Street Style Quest без явного запроса.
-- [ ] После настройки семантического провайдера дополнить Graphify-индекс Markdown-документами и дизайн-артефактами.
+- [ ] Integrate mascot assets into UI/Telegram only after the emotion library is approved.
+
+## Later — platform checks
+
+- [ ] Verify Apps Script version/URL, signed-`initData` E2E and a real scheduled-delivery receipt.
+- [ ] Add the next Go Getter 4 mission; expand semantic Graphify indexing when a provider is configured.
