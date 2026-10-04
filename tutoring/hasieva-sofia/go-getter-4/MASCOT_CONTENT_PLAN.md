@@ -27,10 +27,11 @@ Role: a quiet backstage creative companion. Miso notices useful language details
 
 ### Canonical visual traits
 
+- Upright, bipedal character stance: Miso stands on two short hind legs as legs, with the front paws free to gesture, hold a prop, or rest naturally. He is never depicted as a four-legged pet in product-facing art.
 - Compact round ginger Munchkin body; visibly short legs; large readable head and a soft curved tail.
 - Warm orange tabby fur, cream muzzle/chest, three restrained forehead stripes, ringed tail, amber-green eyes, dark-rose nose, short white whiskers.
 - Four approved invariant traits must be selected from the above after the concept round and recorded in the final bible. They are the identity test for every later asset.
-- Soft toy-like fur, warm studio light, clean silhouette, clear expressive ears and tail.
+- Soft toy-like fur, warm studio light, clean silhouette, clear expressive ears and tail. The two-legged silhouette must remain readable at 64 px.
 - Neutral base: no clothing. A single small cream collar/tag is permitted. Street Style variants add one prop only: a garment tag, notebook, headphones, patch, scarf, or styling tape.
 - No text, letters, numbers, logos, watermarks, photorealism, human-like hands, extra limbs, or cropped anatomy unless a crop is expressly approved.
 
@@ -104,7 +105,7 @@ For every approved asset, retain generation date, account/workspace, source refe
 
 - At least two approved canonical references exist: neutral 3/4 and full-body.
 - No asset is generated without canonical references after approval.
-- Every approved state passes: same identity, no borrowed brand traits, correct Munchkin anatomy, no artefact/text/logo, emotion legible at 96 px, and no CTA overlap.
+- Every approved state passes: same identity, no borrowed brand traits, upright two-hind-leg stance with visible Munchkin anatomy, no artefact/text/logo, emotion legible at 96 px, and no CTA overlap.
 - Production score: at least 90/100, with no failed mandatory gate. Score weights: identity 35, emotion 20, small-scale readability 15, anatomy/cleanliness 15, UI fit 10, originality screen 5.
 
 ## Content library and state registry — P1/P2
