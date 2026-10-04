@@ -8,6 +8,10 @@
 
 ## Улучшения продукта
 
+- [ ] Утвердить `Mascot Bible v1.0`: имя, четыре инвариантных признака, палитру, запреты и первый concept direction. См. `MASCOT_CONTENT_PLAN.md`.
+- [ ] До генерации ассетов подтвердить в используемом Higgsfield account права на коммерческое использование, watermark policy и поддержку выбранного Character/Soul workflow для оригинального AI-персонажа.
+- [ ] Собрать canonical reference pack и восемь v1 состояний; зафиксировать prompt, права и QA в asset manifests.
+- [ ] Провести пятисостояний pilot без изменения учебного контента, scoring, backend schema или расписания уведомлений.
+- [ ] Пройти mobile, Telegram WebView, accessibility, reduced-motion и learner/tutor pilot QA до расширения библиотеки эмоций.
 - [ ] Определить следующий модуль Go Getter 4 и добавить его как отдельную mission sequence, не меняя опубликованный Street Style Quest без явного запроса.
 - [ ] После настройки семантического провайдера дополнить Graphify-индекс Markdown-документами и дизайн-артефактами.
-
