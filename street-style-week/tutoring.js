@@ -49,13 +49,13 @@
       event.data.error ? pending.reject(new Error(event.data.error)) : pending.resolve(event.data.result);
     });
   }
-  async function call(action, state, revision) {
+  async function call(action, state, revision, unit) {
     await Promise.race([ready,new Promise((_,reject) => setTimeout(() => reject(new Error('Connection unavailable. Your work is saved on this device.')),20000))]);
     return new Promise((resolve,reject) => {
       const id = uuid();
       const timeout = setTimeout(() => { calls.delete(id); reject(new Error('Connection timed out. Your work is saved on this device.')); },25000);
       calls.set(id,{resolve,reject,timeout});
-      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:'street-style',initData:tg.initData,state,revision}},bridgeOrigin);
+      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg.initData,state,revision}},bridgeOrigin);
     });
   }
   window.TUTORING = {
@@ -63,7 +63,7 @@
     back(hash) { if (authenticated) hash === '#catalog' || !hash && document.body.dataset.start === 'catalog' ? tg.BackButton.hide() : tg.BackButton.show(); },
     units: [
       {id:'street-style',title:'Street Style',subtitle:'Go Getter 4 · Unit 1',description:'Clothes, patterns and words you can use.',available:true},
-      {id:'grammar-snack',number:'01g',title:'Grammar Snack',subtitle:'Go Getter 4 · Grammar',description:'A quick grammar practice is coming soon.',available:false}
+      {id:'grammar-snack-01',number:'01g',title:'Grammar Snack',subtitle:'Present Simple vs Present Continuous',description:'Short theory, deliberate practice and a mastery test.',available:true,href:'../grammar-snack-01/'}
     ]
   };
   setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · progress stays on this device.');
