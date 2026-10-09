@@ -79,7 +79,7 @@
     const grid=document.querySelector('#unitGrid');
     for(const [index,unit] of tutoring.units.entries()){
       const button=document.createElement('button'); button.className='unit-card'; button.disabled=!unit.available;
-      const number=document.createElement('span'); number.className='unit-number'; number.textContent=String(index+1).padStart(2,'0');
+      const number=document.createElement('span'); number.className='unit-number'; number.textContent=unit.number || String(index+1).padStart(2,'0');
       const copy=document.createElement('span'); copy.className='unit-copy';
       const label=document.createElement('small'); label.textContent=unit.subtitle;
       const title=document.createElement('strong'); title.textContent=unit.title;

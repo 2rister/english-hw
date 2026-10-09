@@ -61,7 +61,10 @@
   window.TUTORING = {
     authenticated, userId: tg?.initDataUnsafe?.user?.id, call, setStatus,
     back(hash) { if (authenticated) hash === '#catalog' || !hash && document.body.dataset.start === 'catalog' ? tg.BackButton.hide() : tg.BackButton.show(); },
-    units: [{id:'street-style',title:'Street Style',subtitle:'Go Getter 4 · Unit 1',description:'Clothes, patterns and words you can use.',available:true}]
+    units: [
+      {id:'street-style',title:'Street Style',subtitle:'Go Getter 4 · Unit 1',description:'Clothes, patterns and words you can use.',available:true},
+      {id:'grammar-snack',number:'01g',title:'Grammar Snack',subtitle:'Go Getter 4 · Grammar',description:'A quick grammar practice is coming soon.',available:false}
+    ]
   };
   setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · progress stays on this device.');
 })();
