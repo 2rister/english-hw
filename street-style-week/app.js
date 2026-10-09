@@ -3,7 +3,7 @@
   const DATA = window.QUEST_DATA;
   const tutoring = window.TUTORING;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
-  let revision = 0, syncTimer, syncing = false, syncPending = false, restored = !tutoring?.authenticated;
+  let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -14,21 +14,31 @@
     try { return {...freshState(), ...JSON.parse(localStorage.getItem(KEY) || '{}')}; }
     catch { return freshState(); }
   }
-  function save(){
+  function save(immediate=false){
     localStorage.setItem(KEY, JSON.stringify(state)); updateXP();
     if(tutoring?.authenticated){ localStorage.setItem(KEY+':pending','1'); }
-    if(tutoring?.authenticated && restored){ syncPending=true; clearTimeout(syncTimer); syncTimer=setTimeout(syncProgress,900); }
+    if(tutoring?.authenticated && restored){ syncPending=true; clearTimeout(syncTimer); if(immediate){ syncUrgent=true; syncProgress(); } else syncTimer=setTimeout(syncProgress,900); }
+  }
+  function mergeProgress(remote, local){
+    const merged={...freshState(),...remote,...local,days:{},badges:[...new Set([...(remote?.badges||[]),...(local?.badges||[])])],xp:Math.max(remote?.xp||0,local?.xp||0),hintRecoveries:Math.max(remote?.hintRecoveries||0,local?.hintRecoveries||0)};
+    const ids=new Set([...Object.keys(remote?.days||{}),...Object.keys(local?.days||{})]);
+    for(const id of ids){const fromServer=remote?.days?.[id]||{},fromDevice=local?.days?.[id]||{};const score=day=>(day.complete?1000000:0)+(Number(day.index)||0)*1000+(day.answers?.length||0);const newer=score(fromDevice)>=score(fromServer)?fromDevice:fromServer,older=newer===fromDevice?fromServer:fromDevice;merged.days[id]={...older,...newer,drafts:{...(older.drafts||{}),...(newer.drafts||{})}};}
+    return merged;
+  }
+  function setCompletionSyncNote(message, complete){
+    const note=document.querySelector('#completionSync'); if(note) note.textContent=message;
+    const button=document.querySelector('#routeButton'); if(button){ button.disabled=!complete; button.textContent=complete?'Back to the route':'Saving result…'; }
   }
   async function syncProgress(){
     if(syncing || !syncPending || !restored) return;
-    syncing=true; syncPending=false; tutoring.setStatus('Saving your progress…');
+    syncing=true; syncPending=false; tutoring.setStatus('Saving your progress…'); setCompletionSyncNote('Saving your result to your tutor…',false);
     try {
       const result=await tutoring.call('save',JSON.parse(JSON.stringify(state)),revision);
-      if(result.conflict){ restored=false; throw new Error('Progress changed on another device. Reopen the app to continue.'); }
+      if(result.conflict){const latest=await tutoring.call('load');state=mergeProgress(latest.state,state);revision=latest.revision;syncPending=true;syncUrgent=true;tutoring.setStatus('Progress reconnected. Saving your latest answer…');return;}
       if(!result.saved) throw new Error('Progress could not be saved.');
-      revision=result.revision; localStorage.setItem(KEY+':revision',String(revision)); if(!syncPending) localStorage.removeItem(KEY+':pending'); tutoring.setStatus(result.delivery==='pending' ? 'Progress saved · tutor report waiting for delivery.' : 'Progress saved.');
-    } catch(error){ syncPending=true; tutoring.setStatus(error.message); }
-    finally { syncing=false; if(syncPending && restored) syncTimer=setTimeout(syncProgress,15000); }
+      revision=result.revision; localStorage.setItem(KEY+':revision',String(revision)); if(!syncPending) localStorage.removeItem(KEY+':pending'); const status=result.delivery==='pending' ? 'Progress saved · tutor report waiting for delivery.' : 'Progress saved.'; tutoring.setStatus(status); setCompletionSyncNote(status,true);
+    } catch(error){ syncPending=true; tutoring.setStatus(error.message); setCompletionSyncNote('Saved on this device. Keep the app open to retry.',true); }
+    finally { const retryDelay=syncUrgent?0:15000; syncUrgent=false; syncing=false; if(syncPending && restored) syncTimer=setTimeout(syncProgress,retryDelay); }
   }
   async function start(){
     app.inert = Boolean(tutoring?.authenticated);
@@ -213,7 +223,7 @@
     button.classList.remove('hidden'); button.onclick=()=>{const hint=item.hint[Math.min(session.hintLevel,item.hint.length-1)];session.hintLevel++;session.usedHint=true;document.querySelector('#feedback').innerHTML=`<div class="hint"><strong>Hint ${session.hintLevel}:</strong> ${hint}</div>`;if(session.hintLevel>=item.hint.length)button.textContent='Show hint again';};
   }
   function finishAnswer(ok,item){
-    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200))});
+    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
       state.days[session.day.id]={index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false}; save();}
   }
   function advance(){session.index++;state.days[session.day.id]={index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false};save();renderQuestion();}
@@ -225,10 +235,10 @@
     state.xp+=30;
     if(score>=70)award(session.day.badge);
     if(completedCount()===DATA.days.length)award('week');
-    save();
+    save(true);
     document.querySelector('#missionBar').style.transform='scaleX(1)';
     const card=document.querySelector('#gameCard');
-    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><button class="primary" id="routeButton">Back to the route</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><p class="sync-note" id="completionSync">${tutoring?.authenticated?'Saving your result to your tutor…':'Saved on this device.'}</p><button class="primary" id="routeButton" ${tutoring?.authenticated?'disabled':''}>${tutoring?.authenticated?'Saving result…':'Back to the route'}</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
     card.querySelector('#routeButton').addEventListener('click',()=>location.hash='home');
     card.querySelector('#summaryButton')?.addEventListener('click',copySummary);
   }
