@@ -21,6 +21,9 @@
   const uiAsset = (url, width = 840) => supportsWebp ? url.replace(/\.png$/, `-${width}.webp`) : url;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated, retryBackoffMs = 0, reviewIndex = 0;
+  // Tutor preview: read the learner's state, write nothing. `restored` stays false so every push
+  // path below is closed, and `save()` returns before it touches the device either.
+  const preview = Boolean(tutoring?.authenticated && tutoring?.preview);
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -32,6 +35,7 @@
     catch { return freshState(); }
   }
   function save(immediate=false){
+    if(preview) return;
     localStorage.setItem(KEY, JSON.stringify(state)); updateXP();
     if(tutoring?.authenticated){ localStorage.setItem(KEY+':pending','1'); }
     if(tutoring?.authenticated && restored){
@@ -79,7 +83,15 @@
     updateXP(); route();
     if(tutoring?.authenticated){
       try {
-        const result=await tutoring.call('load'); revision=result.revision;
+        const result=await tutoring.call(preview ? 'preview' : 'load'); revision=result.revision;
+        if(preview){
+          state = {...freshState(), ...(result.state || {})};
+          document.body.dataset.preview = '1';
+          restored = false;
+          tutoring.setStatus(`Tutor preview · ${result.learner && result.learner.name ? result.learner.name : 'learner'} · read only`);
+          app.inert = false; updateXP(); route();
+          return;
+        }
         // The sheet is the source of truth, but it is never allowed to look like progress vanished.
         // Both sides are unioned day by day, and anything the device still holds unconfirmed is pushed
         // back up. The old code refused to restore on a revision mismatch, which showed a learner who
@@ -347,7 +359,7 @@
       if(done){
         const retry = document.createElement('button');
         retry.className = 'day-retry';
-        retry.innerHTML = 'Try again <span aria-hidden="true">→</span>';
+        retry.innerHTML = (preview ? 'Review mistakes' : 'Try again') + ' <span aria-hidden="true">→</span>';
         retry.addEventListener('click',()=>{ location.hash=`review-${index+1}`; });
         actions.append(retry);
       }
@@ -368,6 +380,7 @@
     const day = DATA.days[dayNumber-1];
     if(!day){ location.hash='home'; return; }
     const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
+    if(preview){ renderDaySummary(dayNumber); return; }   // running a fitting is off in the tutor preview
     // A finished day opens its summary first: a re-run has to be asked for, and the review of her own
     // mistakes stands between the two. Each run is recorded as a new attempt, never as an overwrite.
     if(saved.complete && !retry){ renderDaySummary(dayNumber); return; }
@@ -540,6 +553,10 @@
     const card=document.querySelector('#gameCard');
     card.innerHTML=`<div class="completion"><div class="completion-icon">${best>=70?'PASS':'RETRY'}</div><h2>${best>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${best}%"><strong>${best}%</strong></div><p>Best score ${best}%. ${errors.length?`${errors.length} mistake${errors.length===1?'':'s'} from your last attempt are waiting to be reviewed.`:'Your last attempt had no mistakes to review.'}</p><ul class="attempt-list">${runs.map((run,index)=>`<li><span>Attempt ${index+1}</span><strong>${Number(run.score)||0}%</strong><small>${formatMoment(run.at)}</small></li>`).join('')}</ul><div class="completion-actions">${errors.length?`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`:`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`}</div></div>`;
     card.querySelector('#tryAgain').addEventListener('click',()=>{ location.hash = errors.length ? `review-${dayNumber}` : `retry-${dayNumber}`; });
+    if(preview){
+      const actions=card.querySelector('.completion-actions');
+      if(actions) actions.innerHTML='<p class="attempt-line">Tutor preview · read only. Attempts and their times are recorded when she runs the fitting.</p>';
+    }
   }
 
   function renderReview(dayNumber){
@@ -572,7 +589,7 @@
         <button class="secondary" id="prevError"${reviewIndex===0?' disabled':''}>← Previous</button>
         ${reviewIndex<errors.length-1
           ? '<button class="primary" id="nextError">Next mistake →</button>'
-          : '<button class="primary" id="startAttempt">Start a new attempt →</button>'}
+          : (preview ? '<span class="attempt-line">Tutor preview · read only. A new attempt happens on her device.</span>' : '<button class="primary" id="startAttempt">Start a new attempt →</button>')}
       </div>`;
     card.querySelector('#prevError').addEventListener('click',()=>{ if(reviewIndex>0){ reviewIndex--; renderReview(dayNumber); } });
     card.querySelector('#nextError')?.addEventListener('click',()=>{ reviewIndex++; renderReview(dayNumber); });

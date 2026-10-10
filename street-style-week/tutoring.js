@@ -10,6 +10,10 @@
   const qaContext = () => location.hostname === 'localhost' || location.hostname === '127.0.0.1'
     || new URLSearchParams(location.search).get('qa') === '1';
   const gated = !authenticated && !qaContext();
+  // The tutor opens the same Mini App in preview to read the learner's sheet state read-only: either
+  // with ?preview=1 directly, or through Telegram with https://t.me/<bot>?startapp=preview.
+  const previewRequested = new URLSearchParams(location.search).get('preview') === '1'
+    || tg?.initDataUnsafe?.start_param === 'preview';
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
     if (crypto.randomUUID) return crypto.randomUUID();
@@ -113,7 +117,7 @@
     document.body.append(gate);
   }
   window.TUTORING = {
-    authenticated, gated, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
+    authenticated, gated, preview: previewRequested, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
     back(hash) {
       if (!authenticated) return;
       const inLesson = /^#(day|review|retry)-/.test(hash || '');

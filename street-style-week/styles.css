@@ -244,6 +244,9 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .shell { padding-left:max(18px,env(safe-area-inset-left),var(--telegram-safe-left,0px)); padding-right:max(18px,env(safe-area-inset-right),var(--telegram-safe-right,0px)); padding-bottom:calc(60px + max(env(safe-area-inset-bottom),var(--telegram-safe-bottom,0px))); }
 .sync-row { position:relative; }
 .sync-status { margin:0; padding:8px 18px; font-size:.75rem; color:var(--muted); border-bottom:1px solid var(--line); }
+/* Tutor preview: the same screen, reading the learner's sheet row instead of the tutor's own. */
+body[data-preview="1"] .sync-status { color:var(--ink); font-weight:800; background:rgba(185,227,61,.24); }
+
 /* Save state for the private sheet. It rides on the status row's own bottom edge, so showing it
    never moves the page, and the fill only ever reports a phase the app has actually reached. */
 .save-bar { position:absolute; left:0; right:0; bottom:-1px; height:6px; background:var(--soft); opacity:0; overflow:hidden; transition:opacity 180ms var(--ease-out); }
