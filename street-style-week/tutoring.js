@@ -92,7 +92,7 @@
       event.data.error ? pending.reject(new Error(event.data.error)) : pending.resolve(event.data.result);
     });
   }
-  async function call(action, state, revision, unit) {
+  async function call(action, state, revision, unit, dump) {
     // The startup load waits 8s for the bridge, later calls 20s: a locked catalog is worse than an
     // early offline start, because her next save still merges through the conflict path.
     const wait = calls.size === 0 ? (previewRequested ? 20000 : 8000) : 20000;
@@ -101,7 +101,7 @@
       const id = uuid();
       const timeout = setTimeout(() => { calls.delete(id); reject(new Error('Connection timed out. Your work is saved on this device.')); },25000);
       calls.set(id,{resolve,reject,timeout});
-      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg?.initData,previewToken:previewToken||undefined,state,revision}},bridgeOrigin);
+      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg?.initData,previewToken:previewToken||undefined,state,revision,dump}},bridgeOrigin);
     });
   }
   function mountTelegramGate(){

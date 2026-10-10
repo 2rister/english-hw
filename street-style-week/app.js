@@ -83,6 +83,12 @@
   async function start(){
     if(tutoring?.gated) return;
     app.inert = Boolean(tutoring?.authenticated);
+    // On every open, snapshot the whole device storage to the tutor's workbook (best effort), so a day
+    // that never synced can be untangled from what the device still holds.
+    if(tutoring?.authenticated && !preview){
+      const dump = JSON.stringify(Object.fromEntries(Object.entries(localStorage)));
+      tutoring.call('deviceDump', null, null, null, dump).catch(() => {});
+    }
     updateXP(); route();
     if(tutoring?.authenticated || preview){
       try {
