@@ -2,6 +2,7 @@
   'use strict';
   const DATA = window.QUEST_DATA;
   const tutoring = window.TUTORING;
+  const BOOT_ASSET_URL = new URL('assets/mascot/halloween/miso-vampire-autumn-portrait.png', document.currentScript.src).href;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
@@ -54,6 +55,44 @@
     }
     app.inert = false;
     updateXP(); route();
+  }
+  function mountHalloweenBoot(){
+    const storageKey = 'learncore:halloween-boot:2026';
+    let dismissed = false;
+    try { if(sessionStorage.getItem(storageKey)) return; } catch {}
+
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('section');
+    overlay.className = 'halloween-boot';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','halloweenBootTitle');
+    overlay.innerHTML = `
+      <img class="halloween-boot-art" src="${BOOT_ASSET_URL}" alt="Miso in a vampire cloak in a misty autumn forest at night">
+      <div class="halloween-boot-shade" aria-hidden="true"></div>
+      <div class="halloween-boot-content">
+        <p class="halloween-boot-kicker">October edition</p>
+        <h1 id="halloweenBootTitle">Miso welcomes you<br>after dark.</h1>
+        <p>Tonight’s quest is waiting.</p>
+      </div>
+      <button class="halloween-boot-enter" type="button">Enter the quest <span aria-hidden="true">→</span></button>`;
+
+    const close = () => {
+      if(dismissed) return;
+      dismissed = true;
+      try { sessionStorage.setItem(storageKey,'1'); } catch {}
+      overlay.classList.add('is-leaving');
+      window.setTimeout(()=>{
+        overlay.remove();
+        if(previousFocus instanceof HTMLElement) previousFocus.focus({preventScroll:true});
+      },220);
+    };
+    overlay.querySelector('.halloween-boot-enter').addEventListener('click',close);
+    overlay.addEventListener('click',event=>{ if(!event.target.closest?.('.halloween-boot-enter')) close(); });
+    window.addEventListener('keydown',event=>{ if(event.key==='Escape') close(); },{once:true});
+    document.body.append(overlay);
+    overlay.querySelector('.halloween-boot-enter').focus({preventScroll:true});
+    if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) window.setTimeout(close,2000);
   }
   function updateXP(){ document.querySelector('#xpValue').textContent = state.xp || 0; }
   function earned(id){ return state.badges.includes(id); }
@@ -251,5 +290,6 @@
 
   window.addEventListener('hashchange',route);
   window.addEventListener('online',()=>{if(restored && tutoring?.authenticated){syncPending=true;syncProgress();}});
+  mountHalloweenBoot();
   start();
 })();

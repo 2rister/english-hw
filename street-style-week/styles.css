@@ -234,3 +234,24 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .catalog-footer { margin-top:24px; color:var(--muted); font-size:.85rem; }
 @media(max-width:560px) { .unit-card { grid-template-columns:32px minmax(0,1fr); gap:14px; padding:22px 14px; } .unit-action { grid-column:2; justify-self:start; } }
 @media(prefers-reduced-motion:reduce) { .unit-card { transition:none; } }
+
+/* Halloween boot screen — a visual welcome only; it does not affect tutoring state. */
+.halloween-boot {
+  position:fixed; inset:0; z-index:200; display:grid; isolation:isolate; overflow:hidden;
+  min-height:100svh; min-height:100dvh; background:#080b10; color:#fffdf7;
+  padding:max(18px,env(safe-area-inset-top),var(--telegram-safe-top,0px)) max(20px,env(safe-area-inset-right),var(--telegram-safe-right,0px)) max(18px,env(safe-area-inset-bottom),var(--telegram-safe-bottom,0px)) max(20px,env(safe-area-inset-left),var(--telegram-safe-left,0px));
+  opacity:1; transition:opacity 220ms var(--ease);
+}
+.halloween-boot.is-leaving { opacity:0; pointer-events:none; }
+.halloween-boot-art,.halloween-boot-shade { position:absolute; inset:0; width:100%; height:100%; }
+.halloween-boot-art { z-index:-2; object-fit:cover; object-position:50% 35%; }
+.halloween-boot-shade { z-index:-1; background:linear-gradient(180deg,rgba(4,6,11,.80) 0%,rgba(4,6,11,.18) 36%,rgba(4,6,11,.30) 56%,rgba(4,6,11,.92) 100%); }
+.halloween-boot-content { align-self:start; max-width:22rem; padding-top:clamp(48px,12svh,102px); text-wrap:balance; }
+.halloween-boot-kicker { margin:0 0 12px; color:#b9e33d; font-size:.68rem; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+.halloween-boot h1 { margin:0; color:#fffdf7; font-size:clamp(2.35rem,11vw,4.5rem); line-height:.88; text-shadow:0 2px 18px rgba(0,0,0,.42); }
+.halloween-boot-content>p:last-child { margin:16px 0 0; color:rgba(255,253,247,.84); font-size:.92rem; font-weight:600; }
+.halloween-boot-enter { align-self:end; min-height:52px; width:100%; border:1px solid rgba(255,253,247,.78); border-radius:10px; background:#b9e33d; color:#151515; box-shadow:0 10px 24px rgba(0,0,0,.28); font-weight:850; text-align:left; padding:14px 16px; }
+.halloween-boot-enter span { float:right; font-size:1.2rem; line-height:.8; }
+.halloween-boot-enter:active { transform:scale(.98); }
+@media (min-width:700px) { .halloween-boot-content,.halloween-boot-enter { width:min(390px,100%); justify-self:center; } }
+@media (prefers-reduced-motion:reduce) { .halloween-boot { transition:none; } }
