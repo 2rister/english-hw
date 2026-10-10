@@ -23,7 +23,8 @@
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated, retryBackoffMs = 0, reviewIndex = 0;
   // Tutor preview: read the learner's state, write nothing. `restored` stays false so every push
   // path below is closed, and `save()` returns before it touches the device either.
-  const preview = Boolean(tutoring?.authenticated && tutoring?.preview);
+  const preview = Boolean(tutoring?.preview && (tutoring?.authenticated || tutoring?.previewToken));
+  let previewBrowserToken = null;   // handed out to the tutor's Telegram session only
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -81,11 +82,12 @@
     if(tutoring?.gated) return;
     app.inert = Boolean(tutoring?.authenticated);
     updateXP(); route();
-    if(tutoring?.authenticated){
+    if(tutoring?.authenticated || preview){
       try {
         const result=await tutoring.call(preview ? 'preview' : 'load'); revision=result.revision;
         if(preview){
           state = {...freshState(), ...(result.state || {})};
+          previewBrowserToken = result.browserToken || null;
           document.body.dataset.preview = '1';
           restored = false;
           tutoring.setStatus(`Tutor preview · ${result.learner && result.learner.name ? result.learner.name : 'learner'} · read only`);
@@ -191,6 +193,7 @@
   function renderCatalog(){
     app.replaceChildren(document.querySelector('#catalogTemplate').content.cloneNode(true));
     mountCatalogMiso();
+    mountPreviewLink();
     const grid=document.querySelector('#unitGrid');
     for(const [index,unit] of tutoring.units.entries()){
       const button=document.createElement('button'); button.className='unit-card'; button.disabled=!unit.available;
@@ -335,13 +338,31 @@
     control.addEventListener('click', react);
   }
 
+  // In the tutor's Telegram session the backend hands out a browser link for the same read-only view.
+  function mountPreviewLink(){
+    if(!preview || !previewBrowserToken) return;
+    const host = document.querySelector('.catalog-head') || document.querySelector('.hero');
+    if(!host) return;
+    const url = `${location.origin}${location.pathname}?preview=${previewBrowserToken}`;
+    const box = document.createElement('p');
+    box.className = 'preview-link';
+    box.innerHTML = `<span>Open this same view in a browser:</span> <a href="${url}">${url.replace(/^https?:\/\//,'')}</a> <button class="text-button" type="button">Copy link</button>`;
+    box.querySelector('a').addEventListener('click',event => event.stopPropagation());
+    box.querySelector('button').addEventListener('click',async () => {
+      try { await navigator.clipboard.writeText(url); box.querySelector('button').textContent='Copied'; }
+      catch { box.querySelector('button').textContent='Select the link above'; }
+    });
+    host.after(box);
+  }
+
   function renderHome(){
     app.replaceChildren(document.querySelector('#homeTemplate').content.cloneNode(true));
     document.querySelector('#catalogButton').addEventListener('click',()=>{location.hash='catalog';});
-    if(tutoring?.authenticated){
+    if(tutoring?.authenticated || preview){
       document.querySelector('.hero-copy>p').textContent='Complete one 20 to 25 minute mission each day. Your tutor receives your results privately.';
       document.querySelector('.privacy-note').innerHTML='<span class="privacy-mark" aria-hidden="true">PRIVATE</span><div><strong>Your personal learning space</strong><p>Your progress and writing are saved for your tutor. Audio stays on this device.</p></div>';
     }
+    mountPreviewLink();
     const done = completedCount();
     const pct = Math.round(done / DATA.days.length * 100);
     document.querySelector('#overallPercent').textContent = `${pct}%`;

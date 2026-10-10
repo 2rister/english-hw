@@ -245,6 +245,10 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .sync-row { position:relative; }
 .sync-status { margin:0; padding:8px 18px; font-size:.75rem; color:var(--muted); border-bottom:1px solid var(--line); }
 /* Tutor preview: the same screen, reading the learner's sheet row instead of the tutor's own. */
+.preview-link { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:14px 0 0; padding:12px 14px; background:var(--sheet); border:1px solid var(--ink); border-radius:var(--radius-small); font-size:.8rem; }
+.preview-link a { color:var(--ink); font-family:var(--font-mono,ui-monospace,monospace); word-break:break-all; }
+.preview-link .text-button { padding:8px 10px; background:var(--signal); border:1px solid var(--ink); border-radius:var(--radius-small); font-weight:800; }
+
 body[data-preview="1"] .sync-status { color:var(--ink); font-weight:800; background:rgba(185,227,61,.24); }
 
 /* Save state for the private sheet. It rides on the status row's own bottom edge, so showing it
