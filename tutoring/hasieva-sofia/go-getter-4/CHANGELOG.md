@@ -1,0 +1,36 @@
+# Changelog — Хасиева Софья · Go Getter 4 Mini App
+
+## 2026-10-10
+
+- Published the public Personal Tutoring catalog Miso interaction to GitHub Pages (`main` commits `56f20eb`, `e2e350e`). The focused book-reading Miso now has a colour-aligned base state and an interruptible two-layer reaction: tap → expressive reaction → the same transition played backwards into the study pose. The page uses cache-versioned assets (`miso-catalog-motion-v5-20261010`); JavaScript syntax and diff checks passed. Public browser verification confirmed the current reaction asset loads and cleans up after the return. This is not a real iPhone 14 Telegram-WebView receipt.
+- Added the local iPhone-first Halloween boot screen with an identity-checked authentic Miso: ginger/orange tabby coat, cream zones, three forehead stripes, ringed tail, amber-green eyes and short bipedal Munchkin anatomy. The approved 9:16 asset has no embedded text or UI and preserves dark safe areas for live controls. White-coat and embedded-text candidates remain rejected; publication and real iPhone 14 Telegram-WebView verification remain outstanding.
+- Added `mini-app/RELEASING.md` with the verified endpoint-to-project mapping and repeatable, backup-first deployment steps.
+- Added `mini-app/backend/release.sh`: backend releases now default to a read-only preflight, compare current Apps Script HEAD with the active deployment, preserve a complete temp backup, and refuse to publish if school-side files or target IDs drift. The v55 no-diff preflight passed without creating a new version.
+- Deployed Apps Script v55 to the nested Mini App client's Gateway bridge. It adds bounded private-report delivery diagnostics only; logs exclude learner answers and raw Telegram error text. School handlers were unchanged.
+- The top-level Grammar Snack page uses the separate `Learn Core · Personal tutoring` bridge; its existing deployment was updated to v8 with the same safe diagnostics, preserving reminders and learner flows. Read-back of both Apps Script deployments confirmed their respective versions. Bridge readiness does not prove an authenticated tutoring write or Telegram receipt.
+- Clarified Street Style reset confirmation: app progress and the current tutor snapshot are reset, but previously sent tutor reports remain.
+- Reminder source now tries first at 17:59 Moscow and retries once per minute through 18:05 after a send failure. A focused mock verified retry, once-per-day delivery, and cutoff behavior. Live Apps Script deployment is not claimed.
+
+## 2026-10-09
+
+- Локально добавлен `01g — Grammar Snack`: первый подраздел Present Simple vs Present Continuous с короткой теорией на A2 English, тренировочными блоками и итоговым mastery test.
+- Подготовлены и проверены 10 вариантов итогового теста по 20 заданий (200 заданий всего). При результате ниже 90% приложение выдаёт следующий вариант.
+- Private tutoring backend теперь принимает `grammar-snack-01` отдельно от Street Style и мгновенно обновляет одно сообщение CheckUp: задание, первая неверная попытка, верный ответ и краткий разбор.
+- Каждая новая неверная попытка в Grammar Snack теперь создаёт отдельный мгновенный CheckUp-сигнал: задание, ответ ученицы, правильный вариант и правило. Полная последовательность попыток сохраняется в приватной записи для анализа тенденций; итоговая сводка теста по-прежнему обновляется отдельно.
+- `backend.test.cjs`, JavaScript syntax checks, структура банка (10 × 20) и `git diff --check` прошли. The top-level Grammar Snack route was served by Personal Tutoring v8; Gateway v55 serves the separate nested client.
+- Fixed and published the rapid-save race in PR #1 (`3eaee20`): writes are serialized, local progress and both sides' error events survive revision conflicts, and event IDs are unique. Regression and backend suites passed; GitHub Pages build run `38039498167` succeeded. Public `index.html`, `revisioned-save-queue.js`, and `app.js` all returned HTTP 200 and contained the fix.
+- Follow-up PR #2 bumped the app bundle cache key so Telegram WebViews reload the fixed `app.js`; GitHub Pages build run `38039631016` succeeded, and the live index now references `app.js?v=save-queue-20261010`.
+
+## 2026-10-07
+
+- Fixed a real Day 1 persistence race: mission completion now starts the private sync immediately instead of waiting 900 ms, and the completion screen distinguishes saving, saved, and local-only retry states. This prevents an immediate Mini App close from silently losing the server report.
+- Улучшен приватный отчёт тьютору по Street Style: для новых автоматически проверяемых заданий после неверной попытки сообщение в Telegram содержит формулировку задания, варианты ученицы и правильный ответ.
+- Добавлена backend-регрессия, проверяющая точный текст личного отчёта. `backend.test.cjs` и синтаксические проверки изменённых JavaScript-файлов прошли.
+- Изменение подготовлено локально; публикация frontend в GitHub Pages и backend в Apps Script пока не выполнена, поэтому живой бот ещё использует предыдущий формат.
+
+## 2026-10-04
+
+- Выделен отдельный Git-контур: Go Getter 4, Street Style Quest, Mini App frontend/design и private tutoring backend с тестами.
+- Созданы локальные Graphify/project-scout индексы.
+- Зафиксирован план оригинального двуногого рыжего манчкин-маскота.
+- Текущий scope: только concept/reference pack и библиотека эмоций; UI, backend, Telegram и публикация не менялись.
