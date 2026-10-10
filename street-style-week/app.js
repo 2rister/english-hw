@@ -141,23 +141,39 @@
 
   function mountCatalogMiso(){
     const control = document.querySelector('#catalogMiso');
-    const image = control?.querySelector('img');
-    if(!control || !image) return;
+    const baseImage = control?.querySelector('.catalog-miso__base');
+    const reactionImage = control?.querySelector('.catalog-miso__reaction');
+    if(!control || !baseImage || !reactionImage) return;
 
     let reactionIndex = Math.floor(Math.random() * STUDY_MISO_REACTION_ASSET_URLS.length);
     let isReacting = false;
+    let reactionTimer;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pressTiming = { duration: 140, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
+    const revealTiming = { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
+    const settleTiming = { duration: 220, easing: 'cubic-bezier(0.77, 0, 0.175, 1)', fill: 'forwards' };
     const restore = () => {
-      image.src = STUDY_MISO_ASSET_URL;
-      control.classList.remove('is-reacting');
-      isReacting = false;
+      reactionImage.animate(
+        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.995)' }],
+        reducedMotion ? { duration: 0, fill: 'forwards' } : settleTiming,
+      ).finished.finally(() => {
+        reactionImage.removeAttribute('src');
+        control.animate([{ transform: 'scale(.992)' }, { transform: 'scale(1)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
+        isReacting = false;
+      });
     };
     control.addEventListener('click', () => {
       if(isReacting) return;
       isReacting = true;
-      image.src = STUDY_MISO_REACTION_ASSET_URLS[reactionIndex];
+      reactionImage.src = STUDY_MISO_REACTION_ASSET_URLS[reactionIndex];
       reactionIndex = (reactionIndex + 1) % STUDY_MISO_REACTION_ASSET_URLS.length;
-      control.classList.add('is-reacting');
-      window.setTimeout(restore, 1100);
+      control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.985)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
+      reactionImage.animate(
+        [{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'scale(1)' }],
+        reducedMotion ? { duration: 0, fill: 'forwards' } : revealTiming,
+      );
+      window.clearTimeout(reactionTimer);
+      reactionTimer = window.setTimeout(restore, reducedMotion ? 650 : 820);
     });
   }
 
