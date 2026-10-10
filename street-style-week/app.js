@@ -148,17 +148,18 @@
     let reactionIndex = Math.floor(Math.random() * STUDY_MISO_REACTION_ASSET_URLS.length);
     let isReacting = false;
     let reactionTimer;
+    let pressAnimation;
+    let baseAnimation;
+    let reactionAnimation;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pressTiming = { duration: 140, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
     const revealTiming = { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
-    const settleTiming = { duration: 220, easing: 'cubic-bezier(0.77, 0, 0.175, 1)', fill: 'forwards' };
     const restore = () => {
-      reactionImage.animate(
-        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.995)' }],
-        reducedMotion ? { duration: 0, fill: 'forwards' } : settleTiming,
-      ).finished.finally(() => {
+      pressAnimation.reverse();
+      baseAnimation.reverse();
+      reactionAnimation.reverse();
+      Promise.all([baseAnimation.finished, reactionAnimation.finished]).finally(() => {
         reactionImage.removeAttribute('src');
-        control.animate([{ transform: 'scale(.992)' }, { transform: 'scale(1)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
         isReacting = false;
       });
     };
@@ -167,8 +168,12 @@
       isReacting = true;
       reactionImage.src = STUDY_MISO_REACTION_ASSET_URLS[reactionIndex];
       reactionIndex = (reactionIndex + 1) % STUDY_MISO_REACTION_ASSET_URLS.length;
-      control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.985)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
-      reactionImage.animate(
+      pressAnimation = control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.985)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
+      baseAnimation = baseImage.animate(
+        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.985)' }],
+        reducedMotion ? { duration: 0, fill: 'forwards' } : revealTiming,
+      );
+      reactionAnimation = reactionImage.animate(
         [{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'scale(1)' }],
         reducedMotion ? { duration: 0, fill: 'forwards' } : revealTiming,
       );
