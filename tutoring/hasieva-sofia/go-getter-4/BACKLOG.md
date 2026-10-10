@@ -36,6 +36,8 @@
 
 ## Housekeeping — notes for the next session
 
+- [ ] Verification rule learned the hard way: `qa=1` and a local server both short-circuit `const gated = !authenticated && !qaContext() && !previewToken`, which hid a load-time `ReferenceError` for two releases. Any new entry path must be checked **without** `qa=1`, on the live origin, with console exceptions captured (`qa/v18-smoke.mjs`, `qa/live-preview.mjs`).
+
 - [ ] The repository's root `.clasp.json` points at the school project (`1CqPdMU9sMh78mGPusCuGOdaC8k5-8qZlci8YiMMUA9mVfB4E06r5z4CO`), while the tutoring backend lives in `1K4jBheCLSH7LWVbN96pb2_Mytz6ThQbrs18-HkhMDANBgG_uIfpqS2Os`. The release script targets the right one; running `clasp` by hand from the wrong directory silently touches the other project.
 - [x] Knowledge graph and scout index refreshed after v13. `graphify-out/` was rebuilt (78 files · 1224 nodes · 2103 edges · 92 communities, from working-tree commit `851bb41`) and `.project-knowledge/` hashes, inventory and last-update were regenerated with the nine changed files. Both are local-only (untracked, never published to Pages). Community labels still carry names from the earlier run — `graphify label` needs an LLM key, so refresh the wording from the assistant with `/graphify --update`.
 - [ ] `mini-app/backend` release scripts require `rg` (ripgrep), which is not installed on this machine; the v12/v13 backend releases ran through a `grep` shim with identical fixed-string semantics. Run `brew install ripgrep` if the scripts should work unshimmed.

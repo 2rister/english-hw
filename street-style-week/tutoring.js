@@ -9,13 +9,13 @@
   // comes from. ?qa=1, or any local server, keeps the browser build usable for review and tests.
   const qaContext = () => location.hostname === 'localhost' || location.hostname === '127.0.0.1'
     || new URLSearchParams(location.search).get('qa') === '1';
-  const gated = !authenticated && !qaContext() && !previewToken;
   // The tutor opens the same Mini App in preview to read the learner's sheet state read-only: with
   // ?preview=1, through Telegram with https://t.me/<bot>?startapp=preview, or in a plain browser with
   // the ?preview=<token> link the tutor's own session hands out.
   const previewParam = new URLSearchParams(location.search).get('preview');
   const previewToken = previewParam && previewParam !== '1' ? previewParam : null;
   const previewRequested = previewParam === '1' || tg?.initDataUnsafe?.start_param === 'preview' || Boolean(previewToken);
+  const gated = !authenticated && !qaContext() && !previewToken;
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
     if (crypto.randomUUID) return crypto.randomUUID();
