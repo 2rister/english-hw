@@ -36,14 +36,14 @@
 
 ## Now — verify the sheet holds her work
 
-- [ ] Enable the Google Sheets API for the clasp OAuth project (`1072944905499`) or export `Progress`/`Results`/`Recovery` as CSV, so the sheet can be read read-only and checked for day 4 (`day4`, Gap Detective: completion time, score, and whether a later revision dropped it). Clasp is authenticated and the workbook is `1B5R_9oRqtYFGyqui-uDt9kVEDwqRJ7OaBVFpjbIJqj8`; the Sheets API call currently returns 403 "has not been used in project".
+- [ ] The clasp route to the workbook is dead (Sheets API disabled in clasp's own GCP project and no permission to enable it; Drive export and `clasp run` both refused). Export `Progress`/`Results`/`Recovery` as CSV, or read it with an OAuth client from a project where the Sheets API is enabled, so the sheet can be read read-only and checked for day 4 (`day4`, Gap Detective: completion time, score, and whether a later revision dropped it). Clasp is authenticated and the workbook is `1B5R_9oRqtYFGyqui-uDt9kVEDwqRJ7OaBVFpjbIJqj8`; the Sheets API call currently returns 403 "has not been used in project".
 - [x] Fixed the client-side paths that could make finished work disappear: a re-run no longer un-completes a day (the day object is spread, not replaced), and a revision mismatch merges instead of refusing to restore.
 - [ ] Confirm on-device that day 4 shows as complete again in the catalog after the next successful sync, and that its `Results` evidence carries both attempts with their times.
 
 ## Now — writes reach the tutor's sheet
 
 - [x] Show every write to the sheet: save bar (queued → sending → confirmed/red), immediate write-through on a completed question, and a gate that sends learners to `@CheckUphw_bot` while `?qa=1` keeps the browser build for review.
-- [ ] Decide the wrong-answer gap: Street Style records a wrong attempt only inside `day.answers`, and the backend creates a `Results` row only when `day.answers.length > 0` — so a wrong attempt can stay invisible to the tutor until that question is later answered correctly, or forever if she closes the app. Grammar Snack already writes on the first wrong answer. Fixing it means deciding the shape of that record (update the question's entry in place, or add an explicit pending-attempt field the backend surfaces).
+- [x] Closed the wrong-answer gap: Street Style records a wrong attempt only inside `day.answers`, and the backend creates a `Results` row only when `day.answers.length > 0` — so a wrong attempt can stay invisible to the tutor until that question is later answered correctly, or forever if she closes the app. Grammar Snack already writes on the first wrong answer. Fixing it means deciding the shape of that record (update the question's entry in place, or add an explicit pending-attempt field the backend surfaces).
 - [ ] Decide the `:pending` guard, observed while testing: if local work was never confirmed and the server revision moved, startup refuses to restore progress with "Newer progress exists on another device… contact your tutor", leaving the catalog at "0 of 7 days complete" and the unit card disabled. With the sheet as the source of truth this guard may need to merge and warn instead of refusing.
 
 ## Now — mascot assets only

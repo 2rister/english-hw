@@ -406,7 +406,7 @@
       session.attempts++;
       const ok=normalise(btn.textContent)===normalise(item.a);
       if(ok){ btn.classList.add('correct'); finishAnswer(true,item); }
-      else { btn.classList.add('wrong'); session.wrongThisQuestion=true; session.wrongAnswers.push(btn.textContent); showTry(); revealHintButton(item); }
+      else { btn.classList.add('wrong'); session.wrongThisQuestion=true; recordWrongAttempt(item,btn.textContent); showTry(); revealHintButton(item); }
     }));
   }
 
@@ -420,7 +420,7 @@
       const accepted=[item.a,...(item.accept||[])].map(normalise);
       const ok=accepted.includes(normalise(input.value));
       if(ok){ input.disabled=true; finishAnswer(true,item); }
-      else { session.wrongThisQuestion=true; session.wrongAnswers.push(input.value.trim()); showTry(); revealHintButton(item); }
+      else { session.wrongThisQuestion=true; recordWrongAttempt(item,input.value.trim()); showTry(); revealHintButton(item); }
     };
     box.querySelector('#checkButton').addEventListener('click',check);
     input.addEventListener('keydown',e=>{if(e.key==='Enter')check();});
@@ -463,8 +463,23 @@
     const button=document.querySelector('#hintButton'); if(!item.hint?.length) return;
     button.classList.remove('hidden'); button.onclick=()=>{const hint=item.hint[Math.min(session.hintLevel,item.hint.length-1)];session.hintLevel++;session.usedHint=true;document.querySelector('#feedback').innerHTML=`<div class="hint"><strong>Hint ${session.hintLevel}:</strong> ${hint}</div>`;if(session.hintLevel>=item.hint.length)button.textContent='Show hint again';};
   }
+  // A wrong attempt is evidence the tutor needs, not just a state on the device. It goes into the
+  // day's answers and up to the sheet immediately, so the tutor sees it without waiting for her to
+  // get the question right — and the review can show it even if she stops there.
+  function recordWrongAttempt(item,value){
+    if(!item) return;
+    const text=String(value||'').trim().slice(0,200);
+    if(!text) return;
+    if(!session.wrongAnswers.includes(text)) session.wrongAnswers.push(text);
+    session.answers=session.answers.filter(answer=>answer.q!==item.q);
+    session.answers.push({q:item.q,correct:false,pending:true,firstTry:false,recovered:false,
+      wrong:session.wrongAnswers.slice(-8).map(entry=>String(entry).slice(0,200)),
+      expected:String(item.a).slice(0,200),at:new Date().toISOString()});
+    state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers};
+    save(true);
+  }
   function finishAnswer(ok,item){
-    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
+    if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers=session.answers.filter(answer=>answer.q!==item.q);session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
       state.days[session.day.id]={...state.days[session.day.id],index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers}; save(true);}
   }
   function advance(){session.index++;state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers};save();renderQuestion();}
