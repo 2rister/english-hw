@@ -36,6 +36,9 @@
 
 ## Housekeeping — notes for the next session
 
+- [ ] The tutor reports and the preview read the single row bound by `TUTORING_LEARNER_ID`. If she ever signs in from another Telegram account, her writes land in a **new** row while the tutor silently keeps reading the old one (this is how a row from 3 Oct kept reporting 0%). The preview now lists every row for the unit and its age — decide whether the binding should follow her latest id, or whether the tutor should choose the row in the app.
+- [ ] `Recovery` had zero snapshots for her, so a lost day could not be restored. Worth confirming the tab fills for a live learner: open the app, answer one question, and check that a `Recovery` row appears for that id — the safety net only works if it is written on every save.
+
 - [ ] Verification rule learned the hard way: `qa=1` and a local server both short-circuit `const gated = !authenticated && !qaContext() && !previewToken`, which hid a load-time `ReferenceError` for two releases. Any new entry path must be checked **without** `qa=1`, on the live origin, with console exceptions captured (`qa/v18-smoke.mjs`, `qa/live-preview.mjs`).
 
 - [ ] The repository's root `.clasp.json` points at the school project (`1CqPdMU9sMh78mGPusCuGOdaC8k5-8qZlci8YiMMUA9mVfB4E06r5z4CO`), while the tutoring backend lives in `1K4jBheCLSH7LWVbN96pb2_Mytz6ThQbrs18-HkhMDANBgG_uIfpqS2Os`. The release script targets the right one; running `clasp` by hand from the wrong directory silently touches the other project.

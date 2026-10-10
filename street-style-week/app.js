@@ -25,6 +25,7 @@
   // path below is closed, and `save()` returns before it touches the device either.
   const preview = Boolean(tutoring?.preview && (tutoring?.authenticated || tutoring?.previewToken));
   let previewBrowserToken = null;   // handed out to the tutor's Telegram session only
+  let previewDiagnostics = null;    // which Progress row is being read, how old it is, how much history exists
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -88,6 +89,8 @@
         if(preview){
           state = {...freshState(), ...(result.state || {})};
           previewBrowserToken = result.browserToken || null;
+          previewDiagnostics = {learnerId:result.learner && result.learner.id, history:result.history,
+            rowsForUnit:result.rowsForUnit, recovered:result.recovered || 0};
           document.body.dataset.preview = '1';
           restored = false;
           tutoring.setStatus(`Tutor preview · ${result.learner && result.learner.name ? result.learner.name : 'learner'} · read only`);
@@ -103,7 +106,8 @@
         restored = true;
         if(unconfirmed){ syncPending = true; syncUrgent = true; tutoring.setStatus('Progress merged. Saving your latest answer…'); }
         save();
-        if(!unconfirmed) tutoring.setStatus('Progress connected.');
+        if(result.recovered) tutoring.setStatus(`Progress restored from your history (${result.recovered} day${result.recovered===1?'':'s'}).`);
+        else if(!unconfirmed) tutoring.setStatus('Progress connected.');
       } catch(error){
         if(preview){
           // Nothing to keep offline: a preview that cannot reach the sheet has no data to mirror.
@@ -200,6 +204,7 @@
     app.replaceChildren(document.querySelector('#catalogTemplate').content.cloneNode(true));
     mountCatalogMiso();
     mountPreviewLink();
+    mountPreviewDiagnostics();
     const grid=document.querySelector('#unitGrid');
     for(const [index,unit] of tutoring.units.entries()){
       const button=document.createElement('button'); button.className='unit-card'; button.disabled=!unit.available;
@@ -344,6 +349,27 @@
     control.addEventListener('click', react);
   }
 
+  // The tutor should never have to guess which sheet row he is looking at: show how old it is and how
+  // much history exists behind it.
+  function mountPreviewDiagnostics(){
+    if(!preview || !previewDiagnostics) return;
+    const host = document.querySelector('.catalog-head') || document.querySelector('.hero');
+    if(!host || host.parentElement.querySelector('.preview-note')) return;
+    const rows = previewDiagnostics.rowsForUnit || [];
+    const mine = rows.find(row => String(row.id) === String(previewDiagnostics.learnerId));
+    const stamp = value => { const when = new Date(value); return isNaN(when) ? 'unknown' : when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
+    const bits = [];
+    bits.push(mine ? `Progress row updated ${stamp(mine.updated)}` : 'Progress row not found');
+    if(mine && mine.summary) bits.push(`${mine.summary.completedDays} of 7 days marked complete · ${mine.summary.answers} answers saved`);
+    bits.push(`${(previewDiagnostics.history && previewDiagnostics.history.snapshots) || 0} history snapshots`);
+    if(rows.length > 1) bits.push(`${rows.length} rows for this unit`);
+    if(previewDiagnostics.recovered) bits.push(`restored ${previewDiagnostics.recovered} day${previewDiagnostics.recovered===1?'':'s'} from history`);
+    const note = document.createElement('p');
+    note.className = 'preview-note';
+    note.textContent = bits.join(' · ');
+    host.after(note);
+  }
+
   // In the tutor's Telegram session the backend hands out a browser link for the same read-only view.
   function mountPreviewLink(){
     if(!preview || !previewBrowserToken) return;
@@ -369,6 +395,7 @@
       document.querySelector('.privacy-note').innerHTML='<span class="privacy-mark" aria-hidden="true">PRIVATE</span><div><strong>Your personal learning space</strong><p>Your progress and writing are saved for your tutor. Audio stays on this device.</p></div>';
     }
     mountPreviewLink();
+    mountPreviewDiagnostics();
     const done = completedCount();
     const pct = Math.round(done / DATA.days.length * 100);
     document.querySelector('#overallPercent').textContent = `${pct}%`;
