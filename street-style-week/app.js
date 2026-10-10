@@ -148,69 +148,130 @@
     }
   }
 
+  // Miso performs a three-beat expression reel on tap and breathes while he waits. Each layer owns
+  // one WAAPI timeline, so a tap during the release retargets instead of restarting, and the release
+  // is the same path played back — the cat never disappears between poses.
   function mountCatalogMiso(){
     const control = document.querySelector('#catalogMiso');
     const baseImage = control?.querySelector('.catalog-miso__base');
-    const reactionImage = control?.querySelector('.catalog-miso__reaction');
-    if(!control || !baseImage || !reactionImage) return;
+    const reactionImages = [...(control?.querySelectorAll('.catalog-miso__reaction') || [])];
+    if(!control || !baseImage || reactionImages.length !== STUDY_MISO_REACTION_ASSET_URLS.length) return;
 
     const reactionSources = STUDY_MISO_REACTION_ASSET_URLS.map(uiAsset);
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
-    const PHASE = { duration: 200, easing: EASE, fill: 'both' };
-    const PRESS = { duration: 150, easing: EASE, fill: 'both' };
-    const HOLD = 780;
-    let reactionIndex = Math.floor(Math.random() * reactionSources.length);
-    let busy = false, queued = false, holdTimer;
-    let pressAnimation, baseAnimation, reactionAnimation;
+    const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const EASE_OUT = token('--ease-out') || 'cubic-bezier(.23,1,.32,1)';
+    const CLIP = 1200;                    // the whole three-beat performance
+    const HOLD = 300;                     // reading time on the punchline
+    const RELEASE = 220;                  // back into the study pose
+    const PRESS = { duration: 130, easing: EASE_OUT, fill: 'both' };
+    const UNPRESS = { duration: 160, easing: EASE_OUT, fill: 'both' };
+    // Beat order, not asset order: shock, then "who, me?", then the wink that lands and holds.
+    const REEL = [2, 0, 1];
+    const PUNCHLINE = reactionImages[REEL[REEL.length - 1]];
+    // Each expression is fully in at its arrive point, dominant for ~200ms, then dissolves into the
+    // next one over RISE. The last one settles to rest instead of leaving, so the reel never gaps.
+    const ARRIVE = [0.14, 0.42, 0.70];
+    const RISE = 0.10;
+    const PARK = 'translateY(0) scale(1)';
+    const LIFT = 'translateY(-2px) scale(1.006)';
+    const LEAVE = 'translateY(1.5px) scale(.997)';
 
-    // Warm all four frames while the catalog is on screen, so no tap ever waits on a decode.
-    const warm = () => [uiAsset(STUDY_MISO_ASSET_URL), ...reactionSources].forEach(url => {
-      const image = new Image();
-      image.src = url;
+    // Every frame is in the DOM from the start, so the reel never waits on a fetch or a decode.
+    reactionImages.forEach((image, index) => {
+      image.src = reactionSources[index];
       image.decode?.().catch(() => {});
     });
-    if('requestIdleCallback' in window) window.requestIdleCallback(warm, {timeout: 1500});
-    else window.setTimeout(warm, 250);
+    baseImage.decode?.().catch(() => {});
+
+    let busy = false, queued = false, holdTimer, pressAnimation;
+    let clipAnimations = [], releaseAnimations = [];
+
+    const frameKeys = beat => {
+      const arrive = ARRIVE[beat];
+      const start = beat === 0 ? 0 : arrive - RISE;
+      const nextStart = beat < ARRIVE.length - 1 ? ARRIVE[beat + 1] - RISE : null;
+      const keys = [];
+      if(start > 0) keys.push({ offset: 0, opacity: 0, transform: PARK, easing: 'linear' });
+      keys.push({ offset: start, opacity: 0, transform: PARK, easing: EASE_OUT });
+      keys.push({ offset: arrive, opacity: 1, transform: LIFT, easing: nextStart ? 'linear' : EASE_OUT });
+      if(nextStart) keys.push({ offset: nextStart, opacity: 1, transform: PARK, easing: EASE_OUT });
+      keys.push(nextStart
+        ? { offset: ARRIVE[beat + 1], opacity: 0, transform: LEAVE }
+        : { offset: 1, opacity: 1, transform: PARK });
+      return keys;
+    };
 
     const settle = () => {
-      pressAnimation?.cancel(); baseAnimation?.cancel(); reactionAnimation?.cancel();
-      pressAnimation = baseAnimation = reactionAnimation = undefined;
+      [...clipAnimations, ...releaseAnimations, pressAnimation].forEach(animation => animation?.cancel());
+      clipAnimations = []; releaseAnimations = []; pressAnimation = undefined;
       busy = false;
       if(queued){ queued = false; window.requestAnimationFrame(react); }
     };
 
-    // The return is the same transition played backwards, so the study pose is left the way it arrived.
-    const restore = () => {
-      if(reducedMotion.matches){ baseImage.style.opacity = ''; reactionImage.style.opacity = ''; settle(); return; }
-      pressAnimation?.reverse(); baseAnimation?.reverse(); reactionAnimation?.reverse();
-      Promise.all([baseAnimation?.finished, reactionAnimation?.finished].filter(Boolean)).then(settle, settle);
+    const release = () => {
+      if(reducedMotion.matches){ settle(); return; }
+      releaseAnimations = [
+        baseImage.animate(
+          [{ opacity: 0, transform: 'scale(.992)' }, { opacity: 1, transform: 'scale(1)' }],
+          { duration: RELEASE, easing: EASE_OUT, fill: 'both' },
+        ),
+        PUNCHLINE.animate(
+          [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.006)' }],
+          { duration: RELEASE, easing: EASE_OUT, fill: 'both' },
+        ),
+      ];
+      Promise.all(releaseAnimations.map(animation => animation.finished)).then(settle, settle);
     };
 
     const react = () => {
       if(busy){ queued = true; return; }
       busy = true;
-      reactionImage.src = reactionSources[reactionIndex];
-      reactionIndex = (reactionIndex + 1) % reactionSources.length;
       window.clearTimeout(holdTimer);
       if(reducedMotion.matches){
         baseImage.style.opacity = '0';
-        reactionImage.style.opacity = '1';
-        holdTimer = window.setTimeout(restore, HOLD);
+        reactionImages.forEach(image => { image.style.opacity = image === PUNCHLINE ? '1' : '0'; });
+        holdTimer = window.setTimeout(() => {
+          baseImage.style.opacity = '';
+          reactionImages.forEach(image => { image.style.opacity = ''; });
+          settle();
+        }, HOLD + RELEASE);
         return;
       }
-      pressAnimation = control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.986)' }], PRESS);
-      baseAnimation = baseImage.animate(
-        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.992)' }],
-        PHASE,
-      );
-      reactionAnimation = reactionImage.animate(
-        [{ opacity: 0, transform: 'scale(1.012)' }, { opacity: 1, transform: 'scale(1)' }],
-        PHASE,
-      );
-      holdTimer = window.setTimeout(restore, PHASE.duration + HOLD);
+      clipAnimations = [
+        // The base holds opacity 0 to the end of the clip: without the explicit final keyframe the
+        // browser fills it from the underlying value and the study pose bleeds back through the reel.
+        baseImage.animate(
+          [
+            { opacity: 1, transform: PARK, easing: EASE_OUT },
+            { offset: ARRIVE[0], opacity: 0, transform: 'translateY(1.5px) scale(.995)' },
+            { offset: 1, opacity: 0, transform: 'translateY(1.5px) scale(.995)' },
+          ],
+          { duration: CLIP, fill: 'both' },
+        ),
+      ];
+      REEL.forEach((assetIndex, beat) => {
+        clipAnimations.push(reactionImages[assetIndex].animate(frameKeys(beat), { duration: CLIP, fill: 'both' }));
+      });
+      holdTimer = window.setTimeout(release, CLIP + HOLD);
     };
 
+    const press = () => {
+      if(reducedMotion.matches || pressAnimation) return;
+      pressAnimation = control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.982)' }], PRESS);
+    };
+    const unpress = () => {
+      const animation = pressAnimation;
+      if(!animation) return;
+      pressAnimation = undefined;
+      animation.reverse();
+      animation.finished.then(() => animation.cancel(), () => animation.cancel());
+    };
+
+    control.addEventListener('pointerdown', press);
+    control.addEventListener('pointerup', unpress);
+    control.addEventListener('pointercancel', unpress);
+    control.addEventListener('pointerleave', unpress);
     control.addEventListener('click', react);
   }
 

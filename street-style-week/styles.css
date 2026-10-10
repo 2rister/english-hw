@@ -6,6 +6,7 @@
   --bad:#b9362e; --bad-bg:#fff0ec; --line:#c9c4b9; --soft:#e7e2d8;
   --radius:14px; --radius-small:8px; --shadow:0 12px 0 rgba(21,21,21,.10);
   --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-out:cubic-bezier(.23,1,.32,1); --ease-in-out:cubic-bezier(.77,0,.175,1);
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -221,14 +222,20 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .catalog-head h1 { font-size:clamp(2.7rem,7vw,5rem); line-height:.95; }
 .catalog-head h1 span { color:var(--muted); }
 .catalog-miso { display:block; width:min(52vw,280px); margin:4px auto 16px; padding:0; border:0; background:transparent; cursor:pointer; touch-action:manipulation; transform-origin:50% 82%; }
-/* The study pose and the reaction frames come from one render batch, so the cross-fade never
-   changes the cat's size or lighting. Do not filter one layer to match the other. */
-.catalog-miso__stage { display:block; position:relative; aspect-ratio:1084/1451; }
+/* The study pose and every reaction frame come from one render batch, so a cross-fade never changes
+   the cat's size or lighting. Do not filter one layer to match another. */
+.catalog-miso__stage { display:block; position:relative; aspect-ratio:1084/1451; transform-origin:50% 82%; will-change:transform; animation:miso-breathe 3.6s var(--ease-in-out) infinite; }
 .catalog-miso__stage picture { display:block; }
-.catalog-miso img { display:block; width:100%; height:auto; filter:drop-shadow(0 12px 18px rgba(21,21,21,.14)); transform-origin:50% 82%; will-change:opacity,transform; backface-visibility:hidden; }
+.catalog-miso img { display:block; width:100%; height:auto; filter:drop-shadow(0 12px 18px rgba(21,21,21,.14)); transform-origin:50% 82%; backface-visibility:hidden; }
 .catalog-miso__reaction { position:absolute; inset:0; height:100%; object-fit:contain; opacity:0; pointer-events:none; }
 .catalog-miso:focus-visible { outline:3px solid var(--focus); outline-offset:6px; border-radius:var(--radius-small); }
-@media (prefers-reduced-motion: reduce) { .catalog-miso img { will-change:auto; } }
+/* A mascot that never moves reads as a still image rather than a character. About 1% of vertical
+   stretch, pivoting on the ground contact so the paws stay planted. The headline stays still. */
+@keyframes miso-breathe {
+  0%, 100% { transform:scale(1); }
+  50% { transform:scale(1.003,1.009); }
+}
+@media (prefers-reduced-motion: reduce) { .catalog-miso__stage { will-change:auto; } }
 .catalog-head>p:last-child { max-width:42ch; }
 .unit-grid { border-top:2px solid var(--ink); }
 .unit-card { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:20px; align-items:center; width:100%; text-align:left; padding:24px 18px; background:var(--sheet); color:var(--ink); border:0; border-bottom:1px solid var(--ink); transition:background 180ms var(--ease); }

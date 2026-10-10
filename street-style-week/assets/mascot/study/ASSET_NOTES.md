@@ -35,3 +35,32 @@ cloak, washed subject) and are not used.
 - Regenerate only from the approved ginger Munchkin reference. Never restyle the identity.
 - UI derivatives are 840px wide (a 280px mascot at 3×) at WebP quality 88; the PNG masters stay in
   the tree as the fallback for clients without WebP.
+
+## Motion
+
+A tap runs a three-beat reel; `mountCatalogMiso()` in `street-style-week/app.js` owns the timelines and
+the markup carries four stacked layers (the study pose inside `<picture>`, then one `<img>` per reaction).
+
+| Beat | Frame | Fully in at | Dominant for | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | `surprise` | 170 ms | ~210 ms | The shock answers the tap, so it starts rising immediately |
+| 2 | `side-eye` | 500 ms | ~210 ms | "who, me?" |
+| 3 | `wink` | 840 ms | 660 ms | Punchline: it settles to rest and holds |
+
+- `CLIP` 1200 ms covers all three beats, then `HOLD` 300 ms on the wink and `RELEASE` 220 ms back into
+  the study pose over the same path. Total ~1.7 s per tap.
+- Each layer is parked, rises over `RISE` (120 ms) ending at its arrive point, holds while the next one
+  rises, then dissolves out over the next rise. Coverage is continuous: exactly one expression is
+  always at full opacity, so the panel never flashes the background.
+- Beat order lives in `REEL` (`[2, 0, 1]` = surprise, side-eye, wink) and is deliberately separate from
+  the asset order, so frames can be re-ordered without touching the markup.
+- **Every layer needs an explicit keyframe at `offset: 1`.** A short keyframe list makes the browser fill
+  the end of the animation from the underlying value; that is how the study pose once bled back through
+  the reel as a double exposure.
+- The idle breath is CSS on `.catalog-miso__stage` (`miso-breathe`, 3.6 s, ~1% vertical stretch, origin on
+  the ground contact). Curves come from the shared `--ease-out` / `--ease-in-out` tokens, read by the JS
+  with `getComputedStyle` so there is one source of truth.
+- Press feedback is `pointerdown` → 130 ms scale; `pointerup`/`pointercancel`/`pointerleave` always
+  release it. Reduced motion swaps straight to the wink, holds, and returns with no movement or breath.
+- To re-check the choreography without a device: screencast the page and trace
+  `getComputedStyle(layer).opacity` per `requestAnimationFrame`, then read the table of arrivals.
