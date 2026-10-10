@@ -4,6 +4,11 @@
   const tutoring = window.TUTORING;
   const BOOT_ASSET_URL = new URL('assets/mascot/halloween/miso-vampire-autumn-portrait.png', document.currentScript.src).href;
   const STUDY_MISO_ASSET_URL = new URL('assets/mascot/study/miso-studying-book-cutout.png', document.currentScript.src).href;
+  const STUDY_MISO_REACTION_ASSET_URLS = [
+    'miso-annoyed-side-eye.png',
+    'miso-annoyed-wink.png',
+    'miso-annoyed-surprise.png'
+  ].map(name => new URL(`assets/mascot/study/reactions/${name}`, document.currentScript.src).href);
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
@@ -136,18 +141,23 @@
 
   function mountCatalogMiso(){
     const control = document.querySelector('#catalogMiso');
-    if(!control?.querySelector('img')) return;
+    const image = control?.querySelector('img');
+    if(!control || !image) return;
 
+    let reactionIndex = Math.floor(Math.random() * STUDY_MISO_REACTION_ASSET_URLS.length);
     let isReacting = false;
     const restore = () => {
+      image.src = STUDY_MISO_ASSET_URL;
       control.classList.remove('is-reacting');
       isReacting = false;
     };
     control.addEventListener('click', () => {
       if(isReacting) return;
       isReacting = true;
+      image.src = STUDY_MISO_REACTION_ASSET_URLS[reactionIndex];
+      reactionIndex = (reactionIndex + 1) % STUDY_MISO_REACTION_ASSET_URLS.length;
       control.classList.add('is-reacting');
-      window.setTimeout(restore, 760);
+      window.setTimeout(restore, 1100);
     });
   }
 
