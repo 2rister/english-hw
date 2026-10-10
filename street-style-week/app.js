@@ -367,7 +367,7 @@
       if(done){
         const retry = document.createElement('button');
         retry.className = 'day-retry';
-        retry.innerHTML = (preview ? 'Review mistakes' : 'Try again') + ' <span aria-hidden="true">→</span>';
+        retry.innerHTML = 'Try again <span aria-hidden="true">→</span>';
         retry.addEventListener('click',()=>{ location.hash=`review-${index+1}`; });
         actions.append(retry);
       }
@@ -388,7 +388,6 @@
     const day = DATA.days[dayNumber-1];
     if(!day){ location.hash='home'; return; }
     const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
-    if(preview){ renderDaySummary(dayNumber); return; }   // running a fitting is off in the tutor preview
     // A finished day opens its summary first: a re-run has to be asked for, and the review of her own
     // mistakes stands between the two. Each run is recorded as a new attempt, never as an overwrite.
     if(saved.complete && !retry){ renderDaySummary(dayNumber); return; }
@@ -521,7 +520,8 @@
     document.querySelector('#missionBar').style.transform='scaleX(1)';
     const card=document.querySelector('#gameCard');
     const mistakes=session.answers.filter(answer=>Array.isArray(answer.wrong)&&answer.wrong.length).length;
-    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><p class="attempt-line">Attempt ${runs.length} · ${formatMoment(at)}</p><p class="sync-note" id="completionSync">${tutoring?.authenticated?'Saving your result to your tutor…':'Saved on this device.'}</p><div class="completion-actions">${mistakes?`<button class="secondary" id="reviewMistakes">Review ${mistakes} mistake${mistakes===1?'':'s'}</button>`:''}<button class="primary" id="routeButton" ${tutoring?.authenticated?'disabled':''}>${tutoring?.authenticated?'Saving result…':'Back to the route'}</button></div>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
+    const remote=Boolean(tutoring?.authenticated)&&!preview;
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><p class="attempt-line">Attempt ${runs.length} · ${formatMoment(at)}</p><p class="sync-note" id="completionSync">${preview?'Preview run — kept in memory, nothing sent to the tutor.':remote?'Saving your result to your tutor…':'Saved on this device.'}</p><div class="completion-actions">${mistakes?`<button class="secondary" id="reviewMistakes">Review ${mistakes} mistake${mistakes===1?'':'s'}</button>`:''}<button class="primary" id="routeButton" ${remote?'disabled':''}>${remote?'Saving result…':'Back to the route'}</button></div>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
     card.querySelector('#routeButton').addEventListener('click',()=>location.hash='home');
     card.querySelector('#reviewMistakes')?.addEventListener('click',()=>{ location.hash=`review-${session.dayNumber}`; });
     card.querySelector('#summaryButton')?.addEventListener('click',copySummary);
@@ -561,10 +561,7 @@
     const card=document.querySelector('#gameCard');
     card.innerHTML=`<div class="completion"><div class="completion-icon">${best>=70?'PASS':'RETRY'}</div><h2>${best>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${best}%"><strong>${best}%</strong></div><p>Best score ${best}%. ${errors.length?`${errors.length} mistake${errors.length===1?'':'s'} from your last attempt are waiting to be reviewed.`:'Your last attempt had no mistakes to review.'}</p><ul class="attempt-list">${runs.map((run,index)=>`<li><span>Attempt ${index+1}</span><strong>${Number(run.score)||0}%</strong><small>${formatMoment(run.at)}</small></li>`).join('')}</ul><div class="completion-actions">${errors.length?`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`:`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`}</div></div>`;
     card.querySelector('#tryAgain').addEventListener('click',()=>{ location.hash = errors.length ? `review-${dayNumber}` : `retry-${dayNumber}`; });
-    if(preview){
-      const actions=card.querySelector('.completion-actions');
-      if(actions) actions.innerHTML='<p class="attempt-line">Tutor preview · read only. Attempts and their times are recorded when she runs the fitting.</p>';
-    }
+
   }
 
   function renderReview(dayNumber){
@@ -597,7 +594,7 @@
         <button class="secondary" id="prevError"${reviewIndex===0?' disabled':''}>← Previous</button>
         ${reviewIndex<errors.length-1
           ? '<button class="primary" id="nextError">Next mistake →</button>'
-          : (preview ? '<span class="attempt-line">Tutor preview · read only. A new attempt happens on her device.</span>' : '<button class="primary" id="startAttempt">Start a new attempt →</button>')}
+          : '<button class="primary" id="startAttempt">Start a new attempt →</button>'}
       </div>`;
     card.querySelector('#prevError').addEventListener('click',()=>{ if(reviewIndex>0){ reviewIndex--; renderReview(dayNumber); } });
     card.querySelector('#nextError')?.addEventListener('click',()=>{ reviewIndex++; renderReview(dayNumber); });
