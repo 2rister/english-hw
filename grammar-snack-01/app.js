@@ -2,6 +2,7 @@
   'use strict';
   const UNIT='grammar-snack-01', BANK='../tutoring/hasieva-sofia/go-getter-4/grammar-snack-01/CONTENT_BANK.md';
   const tutoring=window.TUTORING, app=document.querySelector('#app');
+  if(tutoring?.gated) return;   // the gate is already on screen; nothing to render or store
   let revision=0, variants=[];
   const key='grammar-snack-01-v1'+(tutoring?.authenticated?':'+tutoring.userId:'');
   const fresh=()=>({kind:UNIT,variantIndex:0,history:[],current:null,theoryStep:0,theoryDone:false});
@@ -14,8 +15,8 @@
   };
   function load(){try{return {...fresh(),...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fresh();}}
   function persist(){localStorage.setItem(key,JSON.stringify(state)); document.querySelector('#scorePill').textContent=state.current?`${state.current.correct}/${state.current.index}`:'—';}
-  const saveQueue=window.createRevisionedSaveQueue({getState:()=>structuredClone(state),getRevision:()=>revision,setRevision:value=>{revision=value;},save:(snapshot,expected)=>tutoring.call('save',snapshot,expected,UNIT),load:()=>tutoring.call('load',null,null,UNIT),mergeState:remote=>{state=window.mergeGrammarState(state,remote);persist();},onSaved:result=>tutoring.setStatus(result.delivery==='pending'?'Saved · tutor report is retrying.':'Saved · tutor report updated.'),onError:error=>tutoring.setStatus('Saved on this device. '+error.message)});
-  function save(){persist();if(!tutoring?.authenticated||!state.current)return Promise.resolve();return saveQueue.enqueue();}
+  const saveQueue=window.createRevisionedSaveQueue({getState:()=>structuredClone(state),getRevision:()=>revision,setRevision:value=>{revision=value;},save:(snapshot,expected)=>tutoring.call('save',snapshot,expected,UNIT),load:()=>tutoring.call('load',null,null,UNIT),mergeState:remote=>{state=window.mergeGrammarState(state,remote);persist();},onSaved:result=>{tutoring.saving('done');tutoring.setStatus(result.delivery==='pending'?'Saved · tutor report is retrying.':'Saved · tutor report updated.');},onError:error=>{tutoring.saving('error');tutoring.setStatus('Saved on this device. '+error.message);}});
+  function save(){persist();if(!tutoring?.authenticated||!state.current)return Promise.resolve();tutoring.saving('queued');return saveQueue.enqueue();}
   function parseBank(text){
     return text.split(/^### Variant /m).slice(1).map(chunk=>{const lines=chunk.split('\n');const id=lines.shift().trim().slice(0,2);const items=lines.filter(line=>/^\|\s*\d+\s*\|/.test(line)).map(line=>{const c=line.split('|').slice(1,-1).map(x=>x.trim());return {id:c[0],type:c[1],prompt:c[2],answer:c[3],feedback:c[4]};});return {id,items};}).filter(v=>v.items.length===20);
   }

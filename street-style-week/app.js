@@ -20,7 +20,7 @@
   })();
   const uiAsset = (url, width = 840) => supportsWebp ? url.replace(/\.png$/, `-${width}.webp`) : url;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
-  let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
+  let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated, retryBackoffMs = 0;
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -34,7 +34,11 @@
   function save(immediate=false){
     localStorage.setItem(KEY, JSON.stringify(state)); updateXP();
     if(tutoring?.authenticated){ localStorage.setItem(KEY+':pending','1'); }
-    if(tutoring?.authenticated && restored){ syncPending=true; clearTimeout(syncTimer); if(immediate){ syncUrgent=true; syncProgress(); } else syncTimer=setTimeout(syncProgress,900); }
+    if(tutoring?.authenticated && restored){
+      syncPending=true; clearTimeout(syncTimer);
+      tutoring.saving(immediate ? 'sending' : 'queued');
+      if(immediate){ syncUrgent=true; syncProgress(); } else syncTimer=setTimeout(syncProgress,900);
+    }
   }
   function mergeProgress(remote, local){
     const merged={...freshState(),...remote,...local,days:{},badges:[...new Set([...(remote?.badges||[]),...(local?.badges||[])])],xp:Math.max(remote?.xp||0,local?.xp||0),hintRecoveries:Math.max(remote?.hintRecoveries||0,local?.hintRecoveries||0)};
@@ -48,16 +52,25 @@
   }
   async function syncProgress(){
     if(syncing || !syncPending || !restored) return;
-    syncing=true; syncPending=false; tutoring.setStatus('Saving your progress…'); setCompletionSyncNote('Saving your result to your tutor…',false);
+    syncing=true; syncPending=false; tutoring.setStatus('Saving your progress…'); tutoring.saving('sending'); setCompletionSyncNote('Saving your result to your tutor…',false);
     try {
       const result=await tutoring.call('save',JSON.parse(JSON.stringify(state)),revision);
       if(result.conflict){const latest=await tutoring.call('load');state=mergeProgress(latest.state,state);revision=latest.revision;syncPending=true;syncUrgent=true;tutoring.setStatus('Progress reconnected. Saving your latest answer…');return;}
       if(!result.saved) throw new Error('Progress could not be saved.');
-      revision=result.revision; localStorage.setItem(KEY+':revision',String(revision)); if(!syncPending) localStorage.removeItem(KEY+':pending'); const status=result.delivery==='pending' ? 'Progress saved · tutor report waiting for delivery.' : 'Progress saved.'; tutoring.setStatus(status); setCompletionSyncNote(status,true);
-    } catch(error){ syncPending=true; tutoring.setStatus(error.message); setCompletionSyncNote('Saved on this device. Keep the app open to retry.',true); }
-    finally { const retryDelay=syncUrgent?0:15000; syncUrgent=false; syncing=false; if(syncPending && restored) syncTimer=setTimeout(syncProgress,retryDelay); }
+      revision=result.revision; retryBackoffMs=0; localStorage.setItem(KEY+':revision',String(revision)); if(!syncPending) localStorage.removeItem(KEY+':pending'); const status=result.delivery==='pending' ? 'Progress saved · tutor report waiting for delivery.' : 'Progress saved.'; tutoring.setStatus(status); tutoring.saving('done'); setCompletionSyncNote(status,true);
+    } catch(error){ syncPending=true; tutoring.setStatus(error.message); tutoring.saving('error'); setCompletionSyncNote('Saved on this device. Keep the app open to retry.',true); }
+    finally {
+      const urgent=syncUrgent; syncUrgent=false; syncing=false;
+      if(syncPending && restored){
+        // Escalating backoff. The old code retried an urgent save after 0ms, so a failing bridge looped
+        // as fast as the network allowed; now the first urgent retry is 400ms and every later one doubles.
+        retryBackoffMs = Math.min(retryBackoffMs ? retryBackoffMs*2 : (urgent ? 400 : 15000), 30000);
+        syncTimer=setTimeout(syncProgress,retryBackoffMs);
+      } else retryBackoffMs=0;
+    }
   }
   async function start(){
+    if(tutoring?.gated) return;
     app.inert = Boolean(tutoring?.authenticated);
     updateXP(); route();
     if(tutoring?.authenticated){
@@ -421,7 +434,7 @@
   }
   function finishAnswer(ok,item){
     if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
-      state.days[session.day.id]={index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false}; save();}
+      state.days[session.day.id]={index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false}; save(true);}
   }
   function advance(){session.index++;state.days[session.day.id]={index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false};save();renderQuestion();}
 
