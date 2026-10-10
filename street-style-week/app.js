@@ -105,13 +105,19 @@
         save();
         if(!unconfirmed) tutoring.setStatus('Progress connected.');
       } catch(error){
-        // She must still be able to work when the bridge is unreachable: the device copy is the safety
-        // net. The catalog opens instead of locking at "Connecting…", her answers are kept locally and
-        // pushed as soon as the bridge answers, and a stale revision resolves through the merge on the
-        // conflict path. The status line says plainly that the sheet has not heard from her yet.
-        restored = true;
-        syncPending = localStorage.getItem(KEY) !== null;
-        tutoring.setStatus(error.message + ' You can keep working; it syncs when the connection returns.');
+        if(preview){
+          // Nothing to keep offline: a preview that cannot reach the sheet has no data to mirror.
+          restored = false;
+          tutoring.setStatus('Preview could not reach the tutor sheet. Reopen the link from Telegram or refresh.');
+        } else {
+          // She must still be able to work when the bridge is unreachable: the device copy is the safety
+          // net. The catalog opens instead of locking at "Connecting…", her answers are kept locally and
+          // pushed as soon as the bridge answers, and a stale revision resolves through the merge on the
+          // conflict path. The status line says plainly that the sheet has not heard from her yet.
+          restored = true;
+          syncPending = localStorage.getItem(KEY) !== null;
+          tutoring.setStatus(error.message + ' You can keep working; it syncs when the connection returns.');
+        }
       }
     }
     app.inert = false;
