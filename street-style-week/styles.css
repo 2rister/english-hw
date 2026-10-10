@@ -85,7 +85,7 @@ h2 { margin:4px 0 0; font-size:clamp(1.9rem,5vw,3.25rem); line-height:1; letter-
   background:transparent; color:var(--ink); text-align:left;
   transition:transform 180ms var(--ease),background-color 180ms var(--ease);
 }
-.day-card.done { background:rgba(185,227,61,.22); }
+.day-card.done { background:rgba(185,227,61,.16); }
 .day-top { display:contents; }
 .day-number {
   grid-area:number; align-self:start; font-size:2.6rem; font-weight:900; line-height:.9;
@@ -95,19 +95,26 @@ h2 { margin:4px 0 0; font-size:clamp(1.9rem,5vw,3.25rem); line-height:1; letter-
 .day-card h3 { grid-area:title; align-self:end; margin:0; font-size:clamp(1.25rem,3vw,1.8rem); line-height:1.08; letter-spacing:-.025em; }
 .day-card p { grid-area:copy; max-width:58ch; margin:7px 0 0; color:var(--muted); font-size:.87rem; }
 .day-status {
-  grid-area:status; align-self:center; justify-self:end; min-width:132px; padding:10px 12px;
+  grid-area:status; justify-self:end; min-width:132px; padding:10px 12px;
   border:1px solid var(--ink); border-radius:var(--radius-small); font-size:.72rem; font-weight:800; text-align:center;
 }
-.day-card.done .day-status { background:var(--ink); color:var(--signal); }
+.day-card.done .day-status { background:rgba(185,227,61,.34); color:var(--ink); }
 
 /* A finished day shows its score and a way back in; the mistake review stands between the two. */
-.day-card { grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; padding:0 2px; }
+.day-card { grid-template-columns:minmax(0,1fr) auto; grid-template-areas:none; align-items:center; gap:16px; padding:0 2px; }
 .day-open { display:grid; grid-template-columns:72px minmax(0,1fr); grid-template-areas:"number title" "number copy"; gap:2px 20px; width:100%; min-height:126px; padding:20px 2px; border:0; background:transparent; color:var(--ink); text-align:left; cursor:pointer; }
-.day-actions { display:grid; gap:8px; justify-items:end; }
-.day-retry { padding:11px 12px; border:1px solid var(--ink); border-radius:var(--radius-small); background:var(--signal); color:var(--ink); font:inherit; font-size:.72rem; font-weight:800; cursor:pointer; }
+.day-actions { display:flex; align-items:flex-start; gap:8px; justify-content:flex-end; }
+.day-status,.day-retry { box-sizing:border-box; height:44px; min-height:44px; align-self:flex-start; }
+.day-status { display:inline-flex; align-items:center; justify-content:center; }
+.day-retry { display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border:1px solid var(--ink); border-radius:var(--radius-small); background:var(--signal); color:var(--ink); font:inherit; font-size:.72rem; font-weight:800; cursor:pointer; }
+.day-card.done .day-retry { background:transparent; }
 .day-retry:active { transform:scale(.98); }
 .day-open:focus-visible,.day-retry:focus-visible { outline:3px solid var(--focus); outline-offset:3px; border-radius:var(--radius-small); }
-@media(max-width:560px){ .day-card { grid-template-columns:1fr; } .day-actions { justify-items:start; } }
+@media(max-width:560px){
+  .day-card { grid-template-columns:1fr; grid-template-areas:none; }
+  .day-open { min-height:0; padding:16px 0 8px; }
+  .day-actions { margin:0 0 16px 66px; justify-content:flex-start; }
+}
 
 /* Mistake review and attempt history. */
 .review-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -208,7 +215,8 @@ audio { width:100%; margin-top:12px; }
 .summary-box { margin-top:16px; padding:14px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-small); white-space:pre-wrap; text-align:left; font-size:.76rem; }
 
 @media (hover:hover) and (pointer:fine) {
-  .day-card:hover { background:rgba(185,227,61,.14); transform:translateX(5px); }
+  .day-card:not(.done):hover { background:rgba(185,227,61,.14); transform:translateX(5px); }
+  .day-card.done:hover { background:rgba(185,227,61,.23); transform:translateX(5px); }
   .option:hover,.primary:hover,.secondary:hover { transform:translateY(-2px); }
 }
 .day-card:active,.option:active,.primary:active,.secondary:active { transform:scale(.98); }
@@ -219,12 +227,12 @@ audio { width:100%; margin-top:12px; }
   .week-pass { min-height:220px; transform:rotate(.6deg); }
   .pass-code { margin-bottom:28px; }
   .section-heading { margin-top:44px; }
-  .day-card {
+  .day-open {
     grid-template-columns:52px minmax(0,1fr);
     grid-template-areas:"number title" "number copy" "number status"; gap:3px 14px; padding:18px 0;
   }
   .day-number { font-size:2rem; }
-  .day-status { justify-self:start; min-width:0; margin-top:10px; }
+  .day-status { justify-self:start; min-width:0; margin-top:0; }
   .badge-grid { grid-template-columns:repeat(2,1fr); }
   .badge:nth-child(2) { border-right:0; }
   .badge:nth-child(-n+2) { border-bottom:1px solid var(--ink); }

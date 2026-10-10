@@ -424,6 +424,7 @@
     document.querySelector('#overallPercent').textContent = `${pct}%`;
     document.querySelector('#overallBar').style.transform = `scaleX(${pct/100})`;
     const grid = document.querySelector('#dayGrid');
+    const nextDayIndex = DATA.days.findIndex(day => !state.days[day.id]?.complete);
     DATA.days.forEach((day,index) => {
       const info = state.days[day.id];
       const done = Boolean(info?.complete);
@@ -441,13 +442,14 @@
       status.className = 'day-status';
       const seen = daySeen(day);
       const mistakes = (info?.answers||[]).filter(answer => answer && answer.correct===false).length;
-      status.textContent = done ? `${best}% correct` : seen ? `${seen} of ${day.questions.length} done` : 'Not started';
+      const isNext = index === nextDayIndex;
+      status.textContent = done ? 'Completed' : seen ? `${seen} of ${day.questions.length} done` : isNext ? 'Ready to start' : 'Not started';
       actions.append(status);
-      if(done || mistakes || seen >= day.questions.length){
+      if(done || isNext || mistakes || seen >= day.questions.length){
         const retry = document.createElement('button');
         retry.className = 'day-retry';
         const unfinished = !done && !mistakes;
-        retry.innerHTML = unfinished ? 'Run for a score <span aria-hidden="true">→</span>' : 'Try again <span aria-hidden="true">→</span>';
+        retry.innerHTML = done ? 'Try again <span aria-hidden="true">→</span>' : isNext ? 'Start <span aria-hidden="true">→</span>' : 'Run for a score <span aria-hidden="true">→</span>';
         retry.addEventListener('click',()=>{ location.hash = unfinished ? `day-${index+1}` : `review-${index+1}`; });
         actions.append(retry);
       }
