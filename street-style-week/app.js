@@ -3,12 +3,21 @@
   const DATA = window.QUEST_DATA;
   const tutoring = window.TUTORING;
   const BOOT_ASSET_URL = new URL('assets/mascot/halloween/miso-vampire-autumn-portrait.png', document.currentScript.src).href;
-  const STUDY_MISO_ASSET_URL = new URL('assets/mascot/study/miso-studying-book-cutout.png', document.currentScript.src).href;
+  // The study pose and every reaction are frames of one render batch, so the cat keeps its
+  // silhouette, scale and lighting when the two layers cross-fade. See study/ASSET_NOTES.md.
+  const STUDY_MISO_ASSET_URL = new URL('assets/mascot/study/miso-studying-book.png', document.currentScript.src).href;
   const STUDY_MISO_REACTION_ASSET_URLS = [
     'miso-annoyed-side-eye.png',
     'miso-annoyed-wink.png',
     'miso-annoyed-surprise.png'
   ].map(name => new URL(`assets/mascot/study/reactions/${name}`, document.currentScript.src).href);
+  // 840px WebP derivatives (one per frame, sized for a 280px mascot at 3x) keep a tap off the
+  // network. The PNG masters stay in the tree as the fallback for anything without WebP.
+  const supportsWebp = (() => {
+    try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); }
+    catch { return false; }
+  })();
+  const uiAsset = url => supportsWebp ? url.replace(/\.png$/, '-840.webp') : url;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
@@ -145,41 +154,64 @@
     const reactionImage = control?.querySelector('.catalog-miso__reaction');
     if(!control || !baseImage || !reactionImage) return;
 
-    let reactionIndex = Math.floor(Math.random() * STUDY_MISO_REACTION_ASSET_URLS.length);
-    let isReacting = false;
-    let reactionTimer;
-    let pressAnimation;
-    let baseAnimation;
-    let reactionAnimation;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pressTiming = { duration: 140, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
-    const revealTiming = { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' };
-    const restore = () => {
-      pressAnimation.reverse();
-      baseAnimation.reverse();
-      reactionAnimation.reverse();
-      Promise.all([baseAnimation.finished, reactionAnimation.finished]).finally(() => {
-        reactionImage.removeAttribute('src');
-        isReacting = false;
-      });
+    const reactionSources = STUDY_MISO_REACTION_ASSET_URLS.map(uiAsset);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+    const PHASE = { duration: 200, easing: EASE, fill: 'both' };
+    const PRESS = { duration: 150, easing: EASE, fill: 'both' };
+    const HOLD = 780;
+    let reactionIndex = Math.floor(Math.random() * reactionSources.length);
+    let busy = false, queued = false, holdTimer;
+    let pressAnimation, baseAnimation, reactionAnimation;
+
+    // Warm all four frames while the catalog is on screen, so no tap ever waits on a decode.
+    const warm = () => [uiAsset(STUDY_MISO_ASSET_URL), ...reactionSources].forEach(url => {
+      const image = new Image();
+      image.src = url;
+      image.decode?.().catch(() => {});
+    });
+    if('requestIdleCallback' in window) window.requestIdleCallback(warm, {timeout: 1500});
+    else window.setTimeout(warm, 250);
+
+    const settle = () => {
+      pressAnimation?.cancel(); baseAnimation?.cancel(); reactionAnimation?.cancel();
+      pressAnimation = baseAnimation = reactionAnimation = undefined;
+      busy = false;
+      if(queued){ queued = false; window.requestAnimationFrame(react); }
     };
-    control.addEventListener('click', () => {
-      if(isReacting) return;
-      isReacting = true;
-      reactionImage.src = STUDY_MISO_REACTION_ASSET_URLS[reactionIndex];
-      reactionIndex = (reactionIndex + 1) % STUDY_MISO_REACTION_ASSET_URLS.length;
-      pressAnimation = control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.985)' }], reducedMotion ? { duration: 0, fill: 'forwards' } : pressTiming);
+
+    // The return is the same transition played backwards, so the study pose is left the way it arrived.
+    const restore = () => {
+      if(reducedMotion.matches){ baseImage.style.opacity = ''; reactionImage.style.opacity = ''; settle(); return; }
+      pressAnimation?.reverse(); baseAnimation?.reverse(); reactionAnimation?.reverse();
+      Promise.all([baseAnimation?.finished, reactionAnimation?.finished].filter(Boolean)).then(settle, settle);
+    };
+
+    const react = () => {
+      if(busy){ queued = true; return; }
+      busy = true;
+      reactionImage.src = reactionSources[reactionIndex];
+      reactionIndex = (reactionIndex + 1) % reactionSources.length;
+      window.clearTimeout(holdTimer);
+      if(reducedMotion.matches){
+        baseImage.style.opacity = '0';
+        reactionImage.style.opacity = '1';
+        holdTimer = window.setTimeout(restore, HOLD);
+        return;
+      }
+      pressAnimation = control.animate([{ transform: 'scale(1)' }, { transform: 'scale(.986)' }], PRESS);
       baseAnimation = baseImage.animate(
-        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.985)' }],
-        reducedMotion ? { duration: 0, fill: 'forwards' } : revealTiming,
+        [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.992)' }],
+        PHASE,
       );
       reactionAnimation = reactionImage.animate(
-        [{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'scale(1)' }],
-        reducedMotion ? { duration: 0, fill: 'forwards' } : revealTiming,
+        [{ opacity: 0, transform: 'scale(1.012)' }, { opacity: 1, transform: 'scale(1)' }],
+        PHASE,
       );
-      window.clearTimeout(reactionTimer);
-      reactionTimer = window.setTimeout(restore, reducedMotion ? 650 : 820);
-    });
+      holdTimer = window.setTimeout(restore, PHASE.duration + HOLD);
+    };
+
+    control.addEventListener('click', react);
   }
 
   function renderHome(){

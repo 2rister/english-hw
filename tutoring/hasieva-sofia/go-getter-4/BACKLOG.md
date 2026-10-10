@@ -3,8 +3,9 @@
 ## Now — verify the published Miso interaction
 
 - [x] Publish the catalog Miso interaction to GitHub Pages: base colour alignment, expressive reaction and the same transition played in reverse for the return to the book pose. Public cache-busted catalog route is available at `tutoring/?v=miso-catalog-motion-v5-20261010#catalog`.
-- [ ] On Sonya's actual iPhone 14 and in Telegram WebView, tap Miso several times and confirm that the return feels like a reverse transition, colours stay stable, and no cached v3/v4 assets appear. This must be observed on-device; browser verification is not a substitute.
-- [ ] If the illustrated states still read as different lighting rather than one character moving, regenerate the reaction frames from the approved study-pose reference in one generation batch before adding new expressions. Do not replace the canonical ginger Munchkin identity.
+- [x] Re-pair the catalog Miso frames after measuring the mismatch: the base is now `miso-studying-book.png`, from the same render batch as the three reactions, so a tap no longer resizes or relights the cat; the `brightness/saturate` hack is removed and the frames ship as 840px WebP derivatives. Table and rules: `street-style-week/assets/mascot/study/ASSET_NOTES.md`.
+- [ ] On Sonya's actual iPhone 14 and in Telegram WebView, open `tutoring/?v=miso-motion-v6-20261010#catalog`, tap Miso several times, and confirm that the cat keeps its size and lighting, that the return reads as the reverse transition, that the derivative frames look sharp, and that no cached v5 assets appear. This must be observed on-device; browser verification is not a substitute.
+- [ ] If a future expression still reads as different lighting rather than one character moving, regenerate that frame from the approved study-pose reference in one generation batch before adding it, and re-check it against the frame table in `ASSET_NOTES.md`. Do not replace the canonical ginger Munchkin identity.
 
 ## Now — verify the next learner reminder receipt
 
