@@ -4,7 +4,7 @@
   // Dismiss Telegram's native splash before authentication or network work.
   tg?.ready();
   const authenticated = Boolean(tg?.initData);
-  const endpoint = 'https://script.google.com/macros/s/AKfycbx9CUvXuQ827FfwviQ0JxtdBl7_K7Jg54c-O9g4EmVjGiJwlK8shWJtrz1yOXHpkd5V4g/exec?tutoring=1';
+  const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
     if (crypto.randomUUID) return crypto.randomUUID();
     const bytes = crypto.getRandomValues(new Uint8Array(16));
