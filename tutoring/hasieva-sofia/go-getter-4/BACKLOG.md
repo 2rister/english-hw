@@ -34,6 +34,12 @@
 - [ ] Complete one synthetic, non-learner completion after publication and confirm the private tutor report shows: task, learner's wrong attempt, and correct answer. Do not send a test message to the learner or alter her saved progress.
 - [ ] Ask Sonya to reopen `@CheckUphw_bot → My learning` on the same device, wait for `Progress saved.`, then read-only verify her Day 1 in `Progress`/`Results`. Do not reset or ask her to repeat the task.
 
+## Now — writes reach the tutor's sheet
+
+- [x] Show every write to the sheet: save bar (queued → sending → confirmed/red), immediate write-through on a completed question, and a gate that sends learners to `@CheckUphw_bot` while `?qa=1` keeps the browser build for review.
+- [ ] Decide the wrong-answer gap: Street Style records a wrong attempt only inside `day.answers`, and the backend creates a `Results` row only when `day.answers.length > 0` — so a wrong attempt can stay invisible to the tutor until that question is later answered correctly, or forever if she closes the app. Grammar Snack already writes on the first wrong answer. Fixing it means deciding the shape of that record (update the question's entry in place, or add an explicit pending-attempt field the backend surfaces).
+- [ ] Decide the `:pending` guard, observed while testing: if local work was never confirmed and the server revision moved, startup refuses to restore progress with "Newer progress exists on another device… contact your tutor", leaving the catalog at "0 of 7 days complete" and the unit card disabled. With the sheet as the source of truth this guard may need to merge and warn instead of refusing.
+
 ## Now — mascot assets only
 
 - [x] Regenerate the iPhone-first Halloween boot asset using the approved authentic ginger Miso reference. The accepted local asset passed identity QA; white-coat and embedded-text candidates are rejected.
