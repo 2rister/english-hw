@@ -30,7 +30,7 @@
 - [x] Add a behavioral scheduler test with a real synthetic pending report row; the existing scheduler delivers it to the teacher target without sending a learner reminder.
 - [ ] Decide whether pending report retries should continue while learner reminders are paused; current behavior stops the scheduler when reminders are paused, while the report remains pending for the next teacher load/save.
 - [x] Confirm the live-progress report implementation already exists in the deployed backend source; a real synthetic partial-save/edit receipt remains unverified.
-- [ ] Publish the still-local Street Style frontend updates to GitHub Pages through a reviewed integration of the complete feature branch.
+- [x] Published the Street Style app to GitHub Pages as a series of focused, verified commits (v6–v14) and synced the working tree's app files with `main`, so the knowledge graph and the scout index now describe what Pages actually serves. Remaining local drift is limited to the older clients (`mini-app/frontend`, `street-style-quest`) and unrelated in-flight docs.
 - [ ] Complete one synthetic, non-learner completion after publication and confirm the private tutor report shows: task, learner's wrong attempt, and correct answer. Do not send a test message to the learner or alter her saved progress.
 - [ ] Ask Sonya to reopen `@CheckUphw_bot → My learning` on the same device, wait for `Progress saved.`, then read-only verify her Day 1 in `Progress`/`Results`. Do not reset or ask her to repeat the task.
 
