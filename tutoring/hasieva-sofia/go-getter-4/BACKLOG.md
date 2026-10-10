@@ -36,7 +36,9 @@
 
 ## Now — mascot assets only
 
-- [x] Regenerate the iPhone-first Halloween boot asset using the approved authentic ginger Miso reference. The accepted local asset passed identity QA; white-coat and embedded-text candidates are rejected. Still required: GitHub Pages publication and a real iPhone 14 Telegram-WebView check.
+- [x] Regenerate the iPhone-first Halloween boot asset using the approved authentic ginger Miso reference. The accepted local asset passed identity QA; white-coat and embedded-text candidates are rejected.
+- [x] Publish the boot asset and fix its timing: the screen used to close before the 1.4 MB PNG had arrived, so the artwork was never seen on a cold mobile connection. It now ships a 102 KB 768px WebP derivative with the PNG master as fallback, and the close timer waits for the art (capped at 4 s). Table and rule: `street-style-week/assets/mascot/halloween/ASSET_NOTES.md`.
+- [ ] On Sonya's actual iPhone 14 in Telegram WebView, open the app cold (cleared cache or first open of the day) and confirm the boot screen shows the full artwork, that the headline and button sit clear of the notch and home indicator, and that the 2 s auto-close after the art appears does not feel rushed. Browser verification cannot see the safe areas.
 - [ ] Approve Miso's concept: original bipedal ginger Munchkin, short legs, no human hands.
 - [ ] Confirm Higgsfield commercial-use/credit availability and create the canonical reference pack.
 - [ ] Produce and retain the v1 emotion set with prompt, rights and QA records.

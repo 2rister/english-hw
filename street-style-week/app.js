@@ -11,13 +11,14 @@
     'miso-annoyed-wink.png',
     'miso-annoyed-surprise.png'
   ].map(name => new URL(`assets/mascot/study/reactions/${name}`, document.currentScript.src).href);
-  // 840px WebP derivatives (one per frame, sized for a 280px mascot at 3x) keep a tap off the
-  // network. The PNG masters stay in the tree as the fallback for anything without WebP.
+  // WebP derivatives (one per frame, sized for the box it renders into) keep the first paint off the
+  // network. The PNG masters stay in the tree as the fallback for anything without WebP. Call as
+  // `url => uiAsset(url, width)`, never pass it straight to map: the index would become the width.
   const supportsWebp = (() => {
     try { return document.createElement('canvas').toDataURL('image/webp').startsWith('data:image/webp'); }
     catch { return false; }
   })();
-  const uiAsset = url => supportsWebp ? url.replace(/\.png$/, '-840.webp') : url;
+  const uiAsset = (url, width = 840) => supportsWebp ? url.replace(/\.png$/, `-${width}.webp`) : url;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
   let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated;
   const app = document.querySelector('#app');
@@ -83,7 +84,7 @@
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-labelledby','halloweenBootTitle');
     overlay.innerHTML = `
-      <img class="halloween-boot-art" src="${BOOT_ASSET_URL}" alt="Miso in a vampire cloak in a misty autumn forest at night">
+      <img class="halloween-boot-art" src="${uiAsset(BOOT_ASSET_URL, 768)}" alt="Miso in a vampire cloak in a misty autumn forest at night" decoding="async">
       <div class="halloween-boot-shade" aria-hidden="true"></div>
       <div class="halloween-boot-content">
         <p class="halloween-boot-kicker">October edition</p>
@@ -107,7 +108,21 @@
     window.addEventListener('keydown',event=>{ if(event.key==='Escape') close(); },{once:true});
     document.body.append(overlay);
     overlay.querySelector('.halloween-boot-enter').focus({preventScroll:true});
-    if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) window.setTimeout(close,2000);
+    // Never close before the art is on screen: with a 1.4 MB PNG on a cold mobile connection the
+    // artwork used to arrive after the 2s timer, so she only ever saw the dark background. The cap
+    // keeps a dead network from trapping her behind the overlay.
+    const art = overlay.querySelector('.halloween-boot-art');
+    let closeTimer;
+    const armClose = () => {
+      if(closeTimer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      closeTimer = window.setTimeout(close, 2000);
+    };
+    if(art.complete && art.naturalWidth) armClose();
+    else {
+      art.addEventListener('load', armClose, {once:true});
+      art.addEventListener('error', armClose, {once:true});
+      window.setTimeout(armClose, 4000);
+    }
   }
   function updateXP(){ document.querySelector('#xpValue').textContent = state.xp || 0; }
   function earned(id){ return state.badges.includes(id); }
@@ -157,7 +172,7 @@
     const reactionImages = [...(control?.querySelectorAll('.catalog-miso__reaction') || [])];
     if(!control || !baseImage || reactionImages.length !== STUDY_MISO_REACTION_ASSET_URLS.length) return;
 
-    const reactionSources = STUDY_MISO_REACTION_ASSET_URLS.map(uiAsset);
+    const reactionSources = STUDY_MISO_REACTION_ASSET_URLS.map(url => uiAsset(url));
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const EASE_OUT = token('--ease-out') || 'cubic-bezier(.23,1,.32,1)';
