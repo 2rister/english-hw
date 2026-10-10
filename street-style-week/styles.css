@@ -220,6 +220,11 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .catalog-head { padding:24px 0 8px; max-width:800px; }
 .catalog-head h1 { font-size:clamp(2.7rem,7vw,5rem); line-height:.95; }
 .catalog-head h1 span { color:var(--muted); }
+.catalog-miso { display:block; width:min(52vw,280px); margin:4px auto 16px; padding:0; border:0; background:transparent; cursor:pointer; touch-action:manipulation; }
+.catalog-miso img { display:block; width:100%; height:auto; filter:drop-shadow(0 12px 18px rgba(21,21,21,.14)); transform-origin:50% 82%; }
+.catalog-miso:focus-visible { outline:3px solid var(--focus); outline-offset:6px; border-radius:var(--radius-small); }
+.catalog-miso.is-reacting img { animation:miso-interruption 760ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes miso-interruption { 0%{transform:translateY(0) rotate(0) scale(1)} 18%{transform:translateY(4px) rotate(-2deg) scale(.96,1.04)} 46%{transform:translateY(-8px) rotate(2deg) scale(1.06,.94)} 72%{transform:translateY(2px) rotate(-1deg) scale(.99,1.02)} 100%{transform:translateY(0) rotate(0) scale(1)} }
 .catalog-head>p:last-child { max-width:42ch; }
 .unit-grid { border-top:2px solid var(--ink); }
 .unit-card { display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:20px; align-items:center; width:100%; text-align:left; padding:24px 18px; background:var(--sheet); color:var(--ink); border:0; border-bottom:1px solid var(--ink); transition:background 180ms var(--ease); }
@@ -233,7 +238,7 @@ body { padding-top:max(env(safe-area-inset-top),var(--telegram-safe-top,0px)); }
 .unit-action { padding:12px 16px; background:var(--signal); font-weight:800; border-radius:var(--radius-small); }
 .catalog-footer { margin-top:24px; color:var(--muted); font-size:.85rem; }
 @media(max-width:560px) { .unit-card { grid-template-columns:32px minmax(0,1fr); gap:14px; padding:22px 14px; } .unit-action { grid-column:2; justify-self:start; } }
-@media(prefers-reduced-motion:reduce) { .unit-card { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .unit-card { transition:none; } .catalog-miso.is-reacting img { animation:none; } }
 
 /* Halloween boot screen — a visual welcome only; it does not affect tutoring state. */
 .halloween-boot {
