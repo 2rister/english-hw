@@ -114,7 +114,12 @@
   }
   window.TUTORING = {
     authenticated, gated, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
-    back(hash) { if (authenticated) hash === '#catalog' || !hash && document.body.dataset.start === 'catalog' ? tg.BackButton.hide() : tg.BackButton.show(); },
+    back(hash) {
+      if (!authenticated) return;
+      const inLesson = /^#(day|review|retry)-/.test(hash || '');
+      const atCatalog = hash === '#catalog' || (!hash && document.body.dataset.start === 'catalog');
+      tg.BackButton[inLesson || atCatalog ? 'hide' : 'show']();
+    },
     units: [
       {id:'street-style',title:'Street Style',subtitle:'Go Getter 4 · Unit 1',description:'Clothes, patterns and words you can use.',available:true},
       {id:'grammar-snack-01',number:'01g',title:'Grammar Snack',subtitle:'Present Simple vs Present Continuous',description:'Short theory, deliberate practice and a mastery test.',available:true,href:'../grammar-snack-01/'}

@@ -100,6 +100,31 @@ h2 { margin:4px 0 0; font-size:clamp(1.9rem,5vw,3.25rem); line-height:1; letter-
 }
 .day-card.done .day-status { background:var(--ink); color:var(--signal); }
 
+/* A finished day shows its score and a way back in; the mistake review stands between the two. */
+.day-card { grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:16px; padding:0 2px; }
+.day-open { display:grid; grid-template-columns:72px minmax(0,1fr); grid-template-areas:"number title" "number copy"; gap:2px 20px; width:100%; min-height:126px; padding:20px 2px; border:0; background:transparent; color:var(--ink); text-align:left; cursor:pointer; }
+.day-actions { display:grid; gap:8px; justify-items:end; }
+.day-retry { padding:11px 12px; border:1px solid var(--ink); border-radius:var(--radius-small); background:var(--signal); color:var(--ink); font:inherit; font-size:.72rem; font-weight:800; cursor:pointer; }
+.day-retry:active { transform:scale(.98); }
+.day-open:focus-visible,.day-retry:focus-visible { outline:3px solid var(--focus); outline-offset:3px; border-radius:var(--radius-small); }
+@media(max-width:560px){ .day-card { grid-template-columns:1fr; } .day-actions { justify-items:start; } }
+
+/* Mistake review and attempt history. */
+.review-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.review-count { padding:6px 10px; border:1px solid var(--ink); border-radius:999px; font-size:.72rem; font-weight:800; font-variant-numeric:tabular-nums; }
+.review-row { display:grid; gap:6px; margin:0 0 16px; }
+.review-label { color:var(--muted); font-size:.68rem; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+.review-answer { margin:0; padding:12px 14px; border:1px solid var(--ink); border-radius:var(--radius-small); background:var(--sheet); font-weight:700; }
+.review-answer.wrong { border-color:var(--bad); background:var(--bad-bg); color:#81261f; }
+.review-answer.ok { border-color:var(--ok); background:var(--ok-bg); color:#0d5d40; }
+.review-why { margin:0; padding-left:20px; color:var(--muted); }
+.review-why li { margin:4px 0; }
+.review-actions,.completion-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:22px; }
+.attempt-line { margin:8px 0 0; color:var(--muted); font-size:.82rem; }
+.attempt-list { list-style:none; margin:16px 0 0; padding:0; border-top:1px solid var(--line); }
+.attempt-list li { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:10px 2px; border-bottom:1px solid var(--line); font-size:.85rem; }
+.attempt-list small { color:var(--muted); }
+
 .badge-grid { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--ink); }
 .badge { min-height:145px; padding:16px; background:rgba(255,253,247,.58); border-right:1px solid var(--ink); color:var(--muted); filter:grayscale(1); }
 .badge:last-child { border-right:0; }

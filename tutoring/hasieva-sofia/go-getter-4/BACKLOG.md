@@ -34,6 +34,12 @@
 - [ ] Complete one synthetic, non-learner completion after publication and confirm the private tutor report shows: task, learner's wrong attempt, and correct answer. Do not send a test message to the learner or alter her saved progress.
 - [ ] Ask Sonya to reopen `@CheckUphw_bot → My learning` on the same device, wait for `Progress saved.`, then read-only verify her Day 1 in `Progress`/`Results`. Do not reset or ask her to repeat the task.
 
+## Now — verify the sheet holds her work
+
+- [ ] Enable the Google Sheets API for the clasp OAuth project (`1072944905499`) or export `Progress`/`Results`/`Recovery` as CSV, so the sheet can be read read-only and checked for day 4 (`day4`, Gap Detective: completion time, score, and whether a later revision dropped it). Clasp is authenticated and the workbook is `1B5R_9oRqtYFGyqui-uDt9kVEDwqRJ7OaBVFpjbIJqj8`; the Sheets API call currently returns 403 "has not been used in project".
+- [x] Fixed the client-side paths that could make finished work disappear: a re-run no longer un-completes a day (the day object is spread, not replaced), and a revision mismatch merges instead of refusing to restore.
+- [ ] Confirm on-device that day 4 shows as complete again in the catalog after the next successful sync, and that its `Results` evidence carries both attempts with their times.
+
 ## Now — writes reach the tutor's sheet
 
 - [x] Show every write to the sheet: save bar (queued → sending → confirmed/red), immediate write-through on a completed question, and a gate that sends learners to `@CheckUphw_bot` while `?qa=1` keeps the browser build for review.

@@ -20,7 +20,7 @@
   })();
   const uiAsset = (url, width = 840) => supportsWebp ? url.replace(/\.png$/, `-${width}.webp`) : url;
   const KEY = 'street-style-quest-v1' + (tutoring?.authenticated ? ':' + tutoring.userId : '');
-  let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated, retryBackoffMs = 0;
+  let revision = 0, syncTimer, syncing = false, syncPending = false, syncUrgent = false, restored = !tutoring?.authenticated, retryBackoffMs = 0, reviewIndex = 0;
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -43,7 +43,11 @@
   function mergeProgress(remote, local){
     const merged={...freshState(),...remote,...local,days:{},badges:[...new Set([...(remote?.badges||[]),...(local?.badges||[])])],xp:Math.max(remote?.xp||0,local?.xp||0),hintRecoveries:Math.max(remote?.hintRecoveries||0,local?.hintRecoveries||0)};
     const ids=new Set([...Object.keys(remote?.days||{}),...Object.keys(local?.days||{})]);
-    for(const id of ids){const fromServer=remote?.days?.[id]||{},fromDevice=local?.days?.[id]||{};const score=day=>(day.complete?1000000:0)+(Number(day.index)||0)*1000+(day.answers?.length||0);const newer=score(fromDevice)>=score(fromServer)?fromDevice:fromServer,older=newer===fromDevice?fromServer:fromDevice;merged.days[id]={...older,...newer,drafts:{...(older.drafts||{}),...(newer.drafts||{})}};}
+    for(const id of ids){const fromServer=remote?.days?.[id]||{},fromDevice=local?.days?.[id]||{};const score=day=>(day.complete?1000000:0)+(Number(day.index)||0)*1000+(day.answers?.length||0);const newer=score(fromDevice)>=score(fromServer)?fromDevice:fromServer,older=newer===fromDevice?fromServer:fromDevice;
+      // A completed day can never be lost by a merge, and every attempt history survives: the run
+      // lists are unioned by their timestamp instead of one side winning outright.
+      const runs=[...(older.runs||[]),...(newer.runs||[])].filter((run,index,list)=>list.findIndex(other=>other.at===run.at)===index).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+      merged.days[id]={...older,...newer,drafts:{...(older.drafts||{}),...(newer.drafts||{})},runs};}
     return merged;
   }
   function setCompletionSyncNote(message, complete){
@@ -76,10 +80,16 @@
     if(tutoring?.authenticated){
       try {
         const result=await tutoring.call('load'); revision=result.revision;
-        if(localStorage.getItem(KEY+':pending')){
-          if(Number(localStorage.getItem(KEY+':revision') || 0)!==revision) throw new Error('Newer progress exists on another device. Your local work is kept; contact your tutor before continuing.');
-        } else if(result.state) state={...freshState(),...result.state};
-        restored=true; save(); tutoring.setStatus('Progress connected.');
+        // The sheet is the source of truth, but it is never allowed to look like progress vanished.
+        // Both sides are unioned day by day, and anything the device still holds unconfirmed is pushed
+        // back up. The old code refused to restore on a revision mismatch, which showed a learner who
+        // had finished four days a catalog reading "0 of 7 days complete".
+        const unconfirmed = Boolean(localStorage.getItem(KEY+':pending')) && Number(localStorage.getItem(KEY+':revision') || 0)!==revision;
+        state = mergeProgress(result.state || {}, state);
+        restored = true;
+        if(unconfirmed){ syncPending = true; syncUrgent = true; tutoring.setStatus('Progress merged. Saving your latest answer…'); }
+        save();
+        if(!unconfirmed) tutoring.setStatus('Progress connected.');
       } catch(error){ tutoring.setStatus(error.message + ' Reopen the app to reconnect.'); }
     }
     app.inert = false;
@@ -153,6 +163,8 @@
   function route(){
     tutoring?.back(location.hash);
     if(location.hash.startsWith('#day-')) renderMission(Number(location.hash.replace('#day-','')));
+    else if(location.hash.startsWith('#retry-')) renderMission(Number(location.hash.replace('#retry-','')), true);
+    else if(location.hash.startsWith('#review-')){ reviewIndex=0; renderReview(Number(location.hash.replace('#review-',''))); }
     else if(location.hash==='#catalog' || document.body.dataset.start==='catalog' && location.hash!=='#home') renderCatalog();
     else renderHome();
   }
@@ -317,11 +329,30 @@
     const grid = document.querySelector('#dayGrid');
     DATA.days.forEach((day,index) => {
       const info = state.days[day.id];
-      const button = document.createElement('button');
-      button.className = `day-card ${info?.complete ? 'done' : ''}`;
-      button.innerHTML = `<div class="day-top"><span class="day-number">${String(index+1).padStart(2,'0')}</span></div><h3>${day.title}</h3><p>${day.short}</p><span class="day-status">${info?.complete ? `Complete · ${info.score}%` : info?.index ? 'Continue fitting' : 'Start fitting'} →</span>`;
-      button.addEventListener('click',()=>{ location.hash=`day-${index+1}`; });
-      grid.append(button);
+      const done = Boolean(info?.complete);
+      const runs = Array.isArray(info?.runs) ? info.runs : [];
+      const best = done ? Math.max(info?.score || 0, ...runs.map(run=>Number(run.score)||0)) : 0;
+      const row = document.createElement('article');
+      row.className = `day-card ${done ? 'done' : ''}`;
+      const open = document.createElement('button');
+      open.className = 'day-open';
+      open.innerHTML = `<span class="day-number">${String(index+1).padStart(2,'0')}</span><h3>${day.title}</h3><p>${day.short}</p>`;
+      open.addEventListener('click',()=>{ location.hash=`day-${index+1}`; });
+      const actions = document.createElement('div');
+      actions.className = 'day-actions';
+      const status = document.createElement('span');
+      status.className = 'day-status';
+      status.textContent = done ? `${best}% correct` : info?.index ? 'Continue fitting' : 'Start fitting';
+      actions.append(status);
+      if(done){
+        const retry = document.createElement('button');
+        retry.className = 'day-retry';
+        retry.innerHTML = 'Try again <span aria-hidden="true">→</span>';
+        retry.addEventListener('click',()=>{ location.hash=`review-${index+1}`; });
+        actions.append(retry);
+      }
+      row.append(open, actions);
+      grid.append(row);
     });
     const badges = document.querySelector('#badgeGrid');
     DATA.badges.forEach(item => {
@@ -330,15 +361,16 @@
       node.innerHTML = `<span class="badge-icon">${earned(item.id) ? shortMark(item.name) : 'LOCK'}</span><strong>${item.name}</strong><small>${item.desc}</small>`;
       badges.append(node);
     });
-    document.querySelector('#resetButton').addEventListener('click',()=>{
-      if(confirm('Reset all Street Style Quest progress on this device?')){ localStorage.removeItem(KEY); state=freshState(); save(); renderHome(); updateXP(); }
-    });
     updateXP();
   }
 
-  function renderMission(dayNumber){
+  function renderMission(dayNumber, retry=false){
     const day = DATA.days[dayNumber-1];
     if(!day){ location.hash='home'; return; }
+    const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
+    // A finished day opens its summary first: a re-run has to be asked for, and the review of her own
+    // mistakes stands between the two. Each run is recorded as a new attempt, never as an overwrite.
+    if(saved.complete && !retry){ renderDaySummary(dayNumber); return; }
     app.replaceChildren(document.querySelector('#missionTemplate').content.cloneNode(true));
     document.querySelector('#missionNumber').textContent = `Day ${dayNumber} of 7`;
     document.querySelector('#missionTitle').textContent = day.title;
@@ -347,8 +379,7 @@
     const items=buildItems(dayNumber);
     document.querySelector('#missionReward').textContent = `${items.length} CHALLENGES`;
     document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
-    const saved = state.days[day.id] || {index:0,correct:0,attempts:0,answers:[],complete:false};
-    session = {day,items,dayNumber,index:saved.complete?0:(saved.index||0),correct:saved.complete?0:(saved.correct||0),attempts:saved.complete?0:(saved.attempts||0),answers:saved.complete?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false,wrongAnswers:[]};
+    session = {day,items,dayNumber,index:retry?0:(saved.index||0),correct:retry?0:(saved.correct||0),attempts:saved.attempts||0,answers:retry?[]:(saved.answers||[]),hintLevel:0,wrongThisQuestion:false,wrongAnswers:[]};
     renderQuestion();
   }
 
@@ -403,7 +434,7 @@
     area.value=state.days[session.day.id]?.drafts?.[session.index] || ''; validate();
     area.addEventListener('input',()=>{
       validate(); const day=state.days[session.day.id] || {};
-      state.days[session.day.id]={...day,index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false,drafts:{...day.drafts,[session.index]:area.value.slice(0,4000)}}; save();
+      state.days[session.day.id]={...day,index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:Boolean(day.complete),drafts:{...(day.drafts||{}),[session.index]:area.value.slice(0,4000)}}; save();
     }); checks.forEach(c=>c.addEventListener('change',validate));
     button.addEventListener('click',()=>{ session.attempts++; session.answers.push({q:item.q,production:true,text:area.value.trim().slice(0,4000),status:'TEACHER_PENDING',words:area.value.trim().split(/\s+/).length}); session.correct++; advance(); });
   }
@@ -434,23 +465,103 @@
   }
   function finishAnswer(ok,item){
     if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
-      state.days[session.day.id]={index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false}; save(true);}
+      state.days[session.day.id]={...state.days[session.day.id],index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers}; save(true);}
   }
-  function advance(){session.index++;state.days[session.day.id]={index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:false};save();renderQuestion();}
+  function advance(){session.index++;state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers};save();renderQuestion();}
 
   function completeMission(){
     const total=session.items.length;
     const score=Math.round(session.correct/total*100);
-    state.days[session.day.id]={index:total,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:true,score,completedAt:new Date().toISOString()};
+    const previous=state.days[session.day.id]||{};
+    const at=new Date().toISOString();
+    // Every run is kept, with its own time. The day keeps its best score so a weaker repeat can never
+    // take a mastery patch away, and the tutor's evidence carries the whole attempt history.
+    const runs=[...(previous.runs||[]),{at,score,correct:session.correct,total,attempt:session.attempts}];
+    state.days[session.day.id]={...previous,index:total,correct:session.correct,attempts:session.attempts,answers:session.answers,complete:true,score:Math.max(Number(previous.score)||0,score),completedAt:previous.completedAt||at,lastAttemptAt:at,runs};
     state.xp+=30;
     if(score>=70)award(session.day.badge);
     if(completedCount()===DATA.days.length)award('week');
     save(true);
     document.querySelector('#missionBar').style.transform='scaleX(1)';
     const card=document.querySelector('#gameCard');
-    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><p class="sync-note" id="completionSync">${tutoring?.authenticated?'Saving your result to your tutor…':'Saved on this device.'}</p><button class="primary" id="routeButton" ${tutoring?.authenticated?'disabled':''}>${tutoring?.authenticated?'Saving result…':'Back to the route'}</button>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
+    const mistakes=session.answers.filter(answer=>Array.isArray(answer.wrong)&&answer.wrong.length).length;
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${score>=70?'PASS':'RETRY'}</div><h2>${score>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${score}%"><strong>${score}%</strong></div><p>${score>=70?'You earned today’s mastery patch.':'Repeat this fitting tomorrow to strengthen the difficult words.'}</p><p class="attempt-line">Attempt ${runs.length} · ${formatMoment(at)}</p><p class="sync-note" id="completionSync">${tutoring?.authenticated?'Saving your result to your tutor…':'Saved on this device.'}</p><div class="completion-actions">${mistakes?`<button class="secondary" id="reviewMistakes">Review ${mistakes} mistake${mistakes===1?'':'s'}</button>`:''}<button class="primary" id="routeButton" ${tutoring?.authenticated?'disabled':''}>${tutoring?.authenticated?'Saving result…':'Back to the route'}</button></div>${completedCount()===DATA.days.length?`<button class="secondary" id="summaryButton">Copy tutor summary</button><div class="summary-box hidden" id="summaryBox"></div>`:''}</div>`;
     card.querySelector('#routeButton').addEventListener('click',()=>location.hash='home');
+    card.querySelector('#reviewMistakes')?.addEventListener('click',()=>{ location.hash=`review-${session.dayNumber}`; });
     card.querySelector('#summaryButton')?.addEventListener('click',copySummary);
+  }
+
+  const formatMoment = value => {
+    try { return new Date(value).toLocaleString(undefined,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+    catch { return '—'; }
+  };
+
+  // Everything the review needs comes from the last attempt: the question, what she answered, the
+  // correct version and the staged hints, which are the explanation this content ships with.
+  function reviewErrors(dayNumber){
+    const day=DATA.days[dayNumber-1];
+    const info=state.days[day?.id]||{};
+    const all=DATA.days.flatMap(candidate=>candidate.questions||[]);
+    return (info.answers||[]).filter(answer=>Array.isArray(answer.wrong)&&answer.wrong.length).map(answer=>{
+      const item=(day.questions||[]).find(candidate=>candidate.q===answer.q) || all.find(candidate=>String(answer.q).endsWith(candidate.q));
+      return {q:String(answer.q).replace(/^Memory sprint · /,''), wrong:(answer.wrong||[]).filter(Boolean).slice(0,3), expected:answer.expected||item?.a||'—', hint:(item?.hint||[]).slice(0,3)};
+    });
+  }
+
+  function renderDaySummary(dayNumber){
+    const day=DATA.days[dayNumber-1];
+    const info=state.days[day.id]||{};
+    const runs=Array.isArray(info.runs)?info.runs:[];
+    const errors=reviewErrors(dayNumber);
+    const best=Math.max(Number(info.score)||0,...runs.map(run=>Number(run.score)||0));
+    app.replaceChildren(document.querySelector('#missionTemplate').content.cloneNode(true));
+    document.querySelector('#missionNumber').textContent = `Day ${dayNumber} of 7`;
+    document.querySelector('#missionTitle').textContent = day.title;
+    document.querySelector('#missionIntro').textContent = day.intro;
+    document.querySelector('#missionTime').textContent = `TIME · ${day.time}`;
+    document.querySelector('#missionReward').textContent = runs.length===1 ? '1 ATTEMPT' : `${runs.length} ATTEMPTS`;
+    document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
+    document.querySelector('#missionBar').style.transform='scaleX(1)';
+    const card=document.querySelector('#gameCard');
+    card.innerHTML=`<div class="completion"><div class="completion-icon">${best>=70?'PASS':'RETRY'}</div><h2>${best>=70?'Fitting complete':'Good practice'}</h2><div class="score-ring" style="--score:${best}%"><strong>${best}%</strong></div><p>Best score ${best}%. ${errors.length?`${errors.length} mistake${errors.length===1?'':'s'} from your last attempt are waiting to be reviewed.`:'Your last attempt had no mistakes to review.'}</p><ul class="attempt-list">${runs.map((run,index)=>`<li><span>Attempt ${index+1}</span><strong>${Number(run.score)||0}%</strong><small>${formatMoment(run.at)}</small></li>`).join('')}</ul><div class="completion-actions">${errors.length?`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`:`<button class="primary" id="tryAgain">Try again <span aria-hidden="true">→</span></button>`}</div></div>`;
+    card.querySelector('#tryAgain').addEventListener('click',()=>{ location.hash = errors.length ? `review-${dayNumber}` : `retry-${dayNumber}`; });
+  }
+
+  function renderReview(dayNumber){
+    const day=DATA.days[dayNumber-1];
+    if(!day){ location.hash='home'; return; }
+    const errors=reviewErrors(dayNumber);
+    reviewIndex=Math.min(Math.max(reviewIndex,0),Math.max(errors.length-1,0));
+    app.replaceChildren(document.querySelector('#missionTemplate').content.cloneNode(true));
+    document.querySelector('#missionNumber').textContent = `Review · Day ${dayNumber} of 7`;
+    document.querySelector('#missionTitle').textContent = day.title;
+    document.querySelector('#missionIntro').textContent = 'Read what went wrong and why, then run this fitting again.';
+    document.querySelector('#missionTime').textContent = `${errors.length} MISTAKE${errors.length===1?'':'S'}`;
+    document.querySelector('#missionReward').textContent = 'REVIEW';
+    document.querySelector('#backButton').addEventListener('click',()=>{ location.hash='home'; });
+    document.querySelector('#missionBar').style.transform=`scaleX(${errors.length?(reviewIndex+1)/errors.length:1})`;
+    const card=document.querySelector('#gameCard');
+    if(!errors.length){
+      card.innerHTML=`<div class="round-label">Review</div><h2 class="question">Nothing to review.</h2><p class="prompt-note">Every answer in your last attempt was correct.</p><div class="review-actions"><button class="primary" id="startAttempt">Try again <span aria-hidden="true">→</span></button></div>`;
+      card.querySelector('#startAttempt').addEventListener('click',()=>{ location.hash=`retry-${dayNumber}`; });
+      return;
+    }
+    const error=errors[reviewIndex];
+    card.innerHTML=`
+      <div class="review-head"><span class="round-label">Error ${reviewIndex+1} of ${errors.length}</span><span class="review-count">${reviewIndex+1}/${errors.length}</span></div>
+      <h2 class="question">${error.q}</h2>
+      <div class="review-row"><span class="review-label">You answered</span><p class="review-answer wrong">${error.wrong.join(' · ')}</p></div>
+      <div class="review-row"><span class="review-label">Correct</span><p class="review-answer ok">${error.expected}</p></div>
+      <div class="review-row"><span class="review-label">Why</span>${error.hint.length?`<ul class="review-why">${error.hint.map(line=>`<li>${line}</li>`).join('')}</ul>`:'<p class="review-answer">Say the correct answer aloud and compare it with what you wrote.</p>'}</div>
+      <div class="review-actions">
+        <button class="secondary" id="prevError"${reviewIndex===0?' disabled':''}>← Previous</button>
+        ${reviewIndex<errors.length-1
+          ? '<button class="primary" id="nextError">Next mistake →</button>'
+          : '<button class="primary" id="startAttempt">Start a new attempt →</button>'}
+      </div>`;
+    card.querySelector('#prevError').addEventListener('click',()=>{ if(reviewIndex>0){ reviewIndex--; renderReview(dayNumber); } });
+    card.querySelector('#nextError')?.addEventListener('click',()=>{ reviewIndex++; renderReview(dayNumber); });
+    card.querySelector('#startAttempt')?.addEventListener('click',()=>{ location.hash=`retry-${dayNumber}`; });
   }
 
   async function copySummary(){
