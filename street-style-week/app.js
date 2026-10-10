@@ -223,8 +223,7 @@
   function renderCatalog(){
     app.replaceChildren(document.querySelector('#catalogTemplate').content.cloneNode(true));
     mountCatalogMiso();
-    mountPreviewLink();
-    mountPreviewDiagnostics();
+    mountPreviewPanel();
     const grid=document.querySelector('#unitGrid');
     for(const [index,unit] of tutoring.units.entries()){
       const button=document.createElement('button'); button.className='unit-card'; button.disabled=!unit.available;
@@ -370,44 +369,41 @@
     control.addEventListener('click', react);
   }
 
-  // The tutor should never have to guess which sheet row he is looking at: show how old it is and how
-  // much history exists behind it.
-  function mountPreviewDiagnostics(){
+  // Preview chrome in one place: which sheet row is being read, and — in the tutor's own session — the
+  // browser link to the same view.
+  function mountPreviewPanel(){
     if(!preview || !previewDiagnostics) return;
     const host = document.querySelector('.catalog-head') || document.querySelector('.hero');
-    if(!host || host.parentElement.querySelector('.preview-note')) return;
+    if(!host) return;
     const rows = previewDiagnostics.rowsForUnit || [];
     const mine = rows.find(row => String(row.id) === String(previewDiagnostics.learnerId));
-    const stamp = value => { const when = new Date(value); return isNaN(when) ? 'unknown' : when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
-    const bits = [];
-    bits.push(mine ? `Progress row updated ${stamp(mine.updated)}` : 'Progress row not found');
+    const when = value => { const date = new Date(value); return isNaN(date) ? 'unknown' : date.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); };
+    const bits = [ mine ? `Progress row updated ${when(mine.updated)}` : 'Progress row not found' ];
     if(mine && mine.summary) bits.push(`${mine.summary.completedDays} of 7 days marked complete · ${mine.summary.answers} answers saved`);
     bits.push(`${(previewDiagnostics.history && previewDiagnostics.history.snapshots) || 0} history snapshots`);
     if(rows.length > 1) bits.push(`${rows.length} rows for this unit`);
     const evidence = previewDiagnostics.resultsRows || [];
-    if(evidence.length) bits.push(`Results: ${evidence.map(row=>`${row.day} ${row.answers}`).join(' · ')}`);
+    if(evidence.length) bits.push(`Results: ${evidence.map(row => `${row.day} ${row.answers}`).join(' · ')}`);
     if(previewDiagnostics.recovered) bits.push(`restored ${previewDiagnostics.recovered} day${previewDiagnostics.recovered===1?'':'s'} from history`);
+    const panel = document.createElement('div');
+    panel.className = 'preview-panel';
     const note = document.createElement('p');
     note.className = 'preview-note';
     note.textContent = bits.join(' · ');
-    host.after(note);
-  }
-
-  // In the tutor's Telegram session the backend hands out a browser link for the same read-only view.
-  function mountPreviewLink(){
-    if(!preview || !previewBrowserToken) return;
-    const host = document.querySelector('.catalog-head') || document.querySelector('.hero');
-    if(!host) return;
-    const url = `${location.origin}${location.pathname}?preview=${previewBrowserToken}`;
-    const box = document.createElement('p');
-    box.className = 'preview-link';
-    box.innerHTML = `<span>Open this same view in a browser:</span> <a href="${url}">${url.replace(/^https?:\/\//,'')}</a> <button class="text-button" type="button">Copy link</button>`;
-    box.querySelector('a').addEventListener('click',event => event.stopPropagation());
-    box.querySelector('button').addEventListener('click',async () => {
-      try { await navigator.clipboard.writeText(url); box.querySelector('button').textContent='Copied'; }
-      catch { box.querySelector('button').textContent='Select the link above'; }
-    });
-    host.after(box);
+    panel.append(note);
+    if(previewBrowserToken){
+      const url = `${location.origin}${location.pathname}?preview=${previewBrowserToken}`;
+      const linkRow = document.createElement('p');
+      linkRow.className = 'preview-link';
+      linkRow.innerHTML = `<span>Open this same view in a browser:</span> <a href="${url}">${url.replace(/^https?:\/\//,'')}</a> <button class="text-button" type="button">Copy link</button>`;
+      linkRow.querySelector('a').addEventListener('click',event => event.stopPropagation());
+      linkRow.querySelector('button').addEventListener('click',async () => {
+        try { await navigator.clipboard.writeText(url); linkRow.querySelector('button').textContent='Copied'; }
+        catch { linkRow.querySelector('button').textContent='Select the link above'; }
+      });
+      panel.append(linkRow);
+    }
+    host.after(panel);
   }
 
   function renderHome(){
@@ -417,8 +413,7 @@
       document.querySelector('.hero-copy>p').textContent='Complete one 20 to 25 minute mission each day. Your tutor receives your results privately.';
       document.querySelector('.privacy-note').innerHTML='<span class="privacy-mark" aria-hidden="true">PRIVATE</span><div><strong>Your personal learning space</strong><p>Your progress and writing are saved for your tutor. Audio stays on this device.</p></div>';
     }
-    mountPreviewLink();
-    mountPreviewDiagnostics();
+    mountPreviewPanel();
     const pct = weeklyItems().pct;
     document.querySelector('#overallPercent').textContent = `${pct}%`;
     document.querySelector('#overallBar').style.transform = `scaleX(${pct/100})`;
