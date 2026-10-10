@@ -36,6 +36,8 @@
 
 ## Housekeeping — notes for the next session
 
+- [ ] A day completed only from evidence (all its items answered, no state-side `complete`) shows `Run for a score` and offers the fitting again. Decide whether such a day should also be marked complete and earn its badge from the evidence, or whether a real run is required for the score.
+
 - [ ] The tutor reports and the preview read the single row bound by `TUTORING_LEARNER_ID`. If she ever signs in from another Telegram account, her writes land in a **new** row while the tutor silently keeps reading the old one (this is how a row from 3 Oct kept reporting 0%). The preview now lists every row for the unit and its age — decide whether the binding should follow her latest id, or whether the tutor should choose the row in the app.
 - [ ] `Recovery` had zero snapshots for her, so a lost day could not be restored. Worth confirming the tab fills for a live learner: open the app, answer one question, and check that a `Recovery` row appears for that id — the safety net only works if it is written on every save.
 

@@ -26,6 +26,7 @@
   const preview = Boolean(tutoring?.preview && (tutoring?.authenticated || tutoring?.previewToken));
   let previewBrowserToken = null;   // handed out to the tutor's Telegram session only
   let previewDiagnostics = null;    // which Progress row is being read, how old it is, how much history exists
+  let evidenceByDay = {};           // finished challenges proven by the tutor's evidence tab
   const app = document.querySelector('#app');
   const normalise = value => value.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
   const freshState = () => ({xp:0,days:{},badges:[],hintRecoveries:0});
@@ -88,9 +89,10 @@
         const result=await tutoring.call(preview ? 'preview' : 'load'); revision=result.revision;
         if(preview){
           state = {...freshState(), ...(result.state || {})};
+          evidenceByDay = result.evidenceByDay || {};
           previewBrowserToken = result.browserToken || null;
           previewDiagnostics = {learnerId:result.learner && result.learner.id, history:result.history,
-            rowsForUnit:result.rowsForUnit, recovered:result.recovered || 0};
+            rowsForUnit:result.rowsForUnit, resultsRows:result.resultsRows, recovered:result.recovered || 0};
           document.body.dataset.preview = '1';
           restored = false;
           tutoring.setStatus(`Tutor preview · ${result.learner && result.learner.name ? result.learner.name : 'learner'} · read only`);
@@ -101,6 +103,7 @@
         // Both sides are unioned day by day, and anything the device still holds unconfirmed is pushed
         // back up. The old code refused to restore on a revision mismatch, which showed a learner who
         // had finished four days a catalog reading "0 of 7 days complete".
+        evidenceByDay = result.evidenceByDay || {};
         const unconfirmed = Boolean(localStorage.getItem(KEY+':pending')) && Number(localStorage.getItem(KEY+':revision') || 0)!==revision;
         state = mergeProgress(result.state || {}, state);
         restored = true;
@@ -183,6 +186,23 @@
   function earned(id){ return state.badges.includes(id); }
   function award(id){ if(id && !earned(id)){ state.badges.push(id); state.xp += 25; } }
   function completedCount(){ return DATA.days.filter(day => state.days[day.id]?.complete).length; }
+  // Progress is counted in finished challenges, not in calendar days: a day is simply a group of items,
+  // and part of a day still counts. `seen` remembers everything she has ever answered in that day, so
+  // running a day again never takes progress away.
+  const withSeen = (saved,q) => [...new Set([...(saved?.seen||[]),q])];
+  function daySeen(day){
+    const saved = state.days[day.id] || {};
+    const seen = new Set(saved.seen || []);
+    (saved.answers||[]).forEach(answer => { if(answer && answer.q) seen.add(answer.q); });
+    // The tutor's evidence tab outlives a state overwrite, so it counts too: what she answered once is
+    // finished work even if the Progress row no longer remembers it.
+    return Math.min(Math.max(seen.size, Number(evidenceByDay[day.id]) || 0), day.questions.length);
+  }
+  function weeklyItems(){
+    let done=0, total=0;
+    DATA.days.forEach(day => { total += day.questions.length; done += daySeen(day); });
+    return {done, total, pct: total ? Math.round(done/total*100) : 0};
+  }
   function shortMark(value){
     return value.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
   }
@@ -214,7 +234,8 @@
       const title=document.createElement('strong'); title.textContent=unit.title;
       const description=document.createElement('span'); description.textContent=unit.description;
       const progress=document.createElement('span'); progress.className='unit-progress';
-      progress.textContent=unit.id==='street-style' ? `${completedCount()} of 7 days complete` : '';
+      const weekly=weeklyItems();
+      progress.textContent=unit.id==='street-style' ? `${weekly.done} of ${weekly.total} challenges done` : '';
       copy.append(label,title,description,progress);
       const action=document.createElement('span'); action.className='unit-action'; action.textContent=unit.available ? (Object.values(state.days).some(day=>day.index || day.complete) ? 'Continue →' : 'Start →') : 'Coming soon';
       if(tutoring?.authenticated && !restored){ button.disabled=true; action.textContent='Connecting…'; }
@@ -363,6 +384,8 @@
     if(mine && mine.summary) bits.push(`${mine.summary.completedDays} of 7 days marked complete · ${mine.summary.answers} answers saved`);
     bits.push(`${(previewDiagnostics.history && previewDiagnostics.history.snapshots) || 0} history snapshots`);
     if(rows.length > 1) bits.push(`${rows.length} rows for this unit`);
+    const evidence = previewDiagnostics.resultsRows || [];
+    if(evidence.length) bits.push(`Results: ${evidence.map(row=>`${row.day} ${row.answers}`).join(' · ')}`);
     if(previewDiagnostics.recovered) bits.push(`restored ${previewDiagnostics.recovered} day${previewDiagnostics.recovered===1?'':'s'} from history`);
     const note = document.createElement('p');
     note.className = 'preview-note';
@@ -396,8 +419,7 @@
     }
     mountPreviewLink();
     mountPreviewDiagnostics();
-    const done = completedCount();
-    const pct = Math.round(done / DATA.days.length * 100);
+    const pct = weeklyItems().pct;
     document.querySelector('#overallPercent').textContent = `${pct}%`;
     document.querySelector('#overallBar').style.transform = `scaleX(${pct/100})`;
     const grid = document.querySelector('#dayGrid');
@@ -416,13 +438,16 @@
       actions.className = 'day-actions';
       const status = document.createElement('span');
       status.className = 'day-status';
-      status.textContent = done ? `${best}% correct` : info?.index ? 'Continue fitting' : 'Start fitting';
+      const seen = daySeen(day);
+      const mistakes = (info?.answers||[]).filter(answer => answer && answer.correct===false).length;
+      status.textContent = done ? `${best}% correct` : seen ? `${seen} of ${day.questions.length} done` : 'Not started';
       actions.append(status);
-      if(done){
+      if(done || mistakes || seen >= day.questions.length){
         const retry = document.createElement('button');
         retry.className = 'day-retry';
-        retry.innerHTML = 'Try again <span aria-hidden="true">→</span>';
-        retry.addEventListener('click',()=>{ location.hash=`review-${index+1}`; });
+        const unfinished = !done && !mistakes;
+        retry.innerHTML = unfinished ? 'Run for a score <span aria-hidden="true">→</span>' : 'Try again <span aria-hidden="true">→</span>';
+        retry.addEventListener('click',()=>{ location.hash = unfinished ? `day-${index+1}` : `review-${index+1}`; });
         actions.append(retry);
       }
       row.append(open, actions);
@@ -549,12 +574,12 @@
     session.answers.push({q:item.q,correct:false,pending:true,firstTry:false,recovered:false,
       wrong:session.wrongAnswers.slice(-8).map(entry=>String(entry).slice(0,200)),
       expected:String(item.a).slice(0,200),at:new Date().toISOString()});
-    state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers};
+    state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers,seen:withSeen(state.days[session.day.id],item.q)};
     save(true);
   }
   function finishAnswer(ok,item){
     if(ok){session.correct++;state.xp+=10;if(session.usedHint){state.hintRecoveries++;award('comeback');}document.querySelector('#feedback').innerHTML=`<div class="feedback ok"><strong>Correct.</strong> ${item.a}</div>`;document.querySelector('#checkButton')?.classList.add('hidden');const next=document.querySelector('#nextButton');next.classList.remove('hidden');next.onclick=advance;document.querySelector('#hintButton')?.classList.add('hidden');session.answers=session.answers.filter(answer=>answer.q!==item.q);session.answers.push({q:item.q,correct:true,firstTry:!session.wrongThisQuestion && !session.usedHint,recovered:Boolean(session.usedHint),wrong:session.wrongAnswers.slice(-8).map(x=>x.slice(0,200)),expected:String(item.a).slice(0,200)});
-      state.days[session.day.id]={...state.days[session.day.id],index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers}; save(true);}
+      state.days[session.day.id]={...state.days[session.day.id],index:session.index+1,correct:session.correct,attempts:session.attempts,answers:session.answers,seen:withSeen(state.days[session.day.id],item.q)}; save(true);}
   }
   function advance(){session.index++;state.days[session.day.id]={...state.days[session.day.id],index:session.index,correct:session.correct,attempts:session.attempts,answers:session.answers};save();renderQuestion();}
 
