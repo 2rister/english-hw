@@ -92,7 +92,10 @@
     });
   }
   async function call(action, state, revision, unit) {
-    await Promise.race([ready,new Promise((_,reject) => setTimeout(() => reject(new Error('Connection unavailable. Your work is saved on this device.')),20000))]);
+    // The startup load waits 8s for the bridge, later calls 20s: a locked catalog is worse than an
+    // early offline start, because her next save still merges through the conflict path.
+    const wait = calls.size === 0 ? 8000 : 20000;
+    await Promise.race([ready,new Promise((_,reject) => setTimeout(() => reject(new Error('Connection unavailable. Your work is saved on this device.')),wait))]);
     return new Promise((resolve,reject) => {
       const id = uuid();
       const timeout = setTimeout(() => { calls.delete(id); reject(new Error('Connection timed out. Your work is saved on this device.')); },25000);
