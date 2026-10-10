@@ -302,7 +302,9 @@ body[data-preview="1"] .sync-status { color:var(--ink); font-weight:800; backgro
 .halloween-boot {
   position:fixed; inset:0; z-index:200; display:grid; isolation:isolate; overflow:hidden;
   min-height:100svh; min-height:100dvh; background:#080b10; color:#fffdf7;
-  padding:max(18px,env(safe-area-inset-top),var(--telegram-safe-top,0px)) max(20px,env(safe-area-inset-right),var(--telegram-safe-right,0px)) max(18px,env(safe-area-inset-bottom),var(--telegram-safe-bottom,0px)) max(20px,env(safe-area-inset-left),var(--telegram-safe-left,0px));
+  /* The art is full-bleed and the top cutout is deliberately ignored: if the headline lands under
+     the notch, it lands under the notch. Only the bottom inset is respected, for the home indicator. */
+  padding:18px max(20px,env(safe-area-inset-right),var(--telegram-safe-right,0px)) max(18px,env(safe-area-inset-bottom),var(--telegram-safe-bottom,0px)) max(20px,env(safe-area-inset-left),var(--telegram-safe-left,0px));
   opacity:1; transition:opacity 220ms var(--ease);
 }
 .halloween-boot.is-leaving { opacity:0; pointer-events:none; }
