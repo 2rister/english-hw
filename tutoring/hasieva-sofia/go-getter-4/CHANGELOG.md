@@ -1,5 +1,10 @@
 # Changelog — Хасиева Софья · Go Getter 4 Mini App
 
+## 2026-10-11 — Grammar Snack native WebView recovery
+
+- Prevent a blank Telegram/WebKit screen when `crypto`, `structuredClone`, or a mixed cached asset version is unavailable.
+- Refresh all learner-facing resource versions together and render reload/back controls if an unexpected script failure remains.
+
 ## 2026-10-11 — Grammar Snack completion answers
 
 - Accept both the missing words and the complete, grammatically equivalent sentence for `Complete:` prompts.

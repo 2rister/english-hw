@@ -2,6 +2,10 @@
 
 ## Completed — 2026-10-11
 
+- [x] Replaced the native WebView blank-screen failure mode with compatibility fallbacks and visible recovery controls.
+
+## Completed — 2026-10-11
+
 - [x] Allow full-sentence answers for Grammar Snack completion prompts without accepting a changed verb form.
 
 ## Completed — 2026-10-11

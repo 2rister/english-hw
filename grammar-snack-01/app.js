@@ -7,7 +7,7 @@
   const key='grammar-snack-01-v1'+(tutoring?.authenticated?':'+tutoring.userId:'');
   const fresh=()=>({kind:UNIT,variantIndex:0,history:[],current:null,theoryStep:0,theoryDone:false});
   let state=load();
-  const normalise=value=>String(value||'').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[’‘‛´`]/g,"'").toLowerCase().replace(/\bwon't\b/g,'will not').replace(/\bcan't\b/g,'cannot').replace(/\bshan't\b/g,'shall not').replace(/\b(\w+)n't\b/g,'$1 not').trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
+  const normalise=value=>{const text=String(value||''); return (typeof text.normalize==='function'?text.normalize('NFKC'):text).replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[’‘‛´`]/g,"'").toLowerCase().replace(/\bwon't\b/g,'will not').replace(/\bcan't\b/g,'cannot').replace(/\bshan't\b/g,'shall not').replace(/\b(\w+)n't\b/g,'$1 not').trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');};
   const withoutTerminalPunctuation=value=>normalise(value).replace(/[,:;]+$/,'');
   const matches=(value,answer,prompt)=>{
     const expected=normalise(answer), actual=normalise(value);
@@ -20,7 +20,8 @@
   };
   function load(){try{return {...fresh(),...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fresh();}}
   function persist(){localStorage.setItem(key,JSON.stringify(state)); document.querySelector('#scorePill').textContent=state.current?`${state.current.correct}/${state.current.index}`:'—';}
-  const saveQueue=window.createRevisionedSaveQueue({getState:()=>structuredClone(state),getRevision:()=>revision,setRevision:value=>{revision=value;},save:(snapshot,expected)=>tutoring.call('save',snapshot,expected,UNIT),load:()=>tutoring.call('load',null,null,UNIT),mergeState:remote=>{state=window.mergeGrammarState(state,remote);persist();},onSaved:result=>{tutoring.saving('done');tutoring.setStatus(result.delivery==='pending'?'Saved · tutor report is retrying.':'Saved · tutor report updated.');},onError:error=>{tutoring.saving('error');recovery(error);}});
+  const copyState=()=>typeof structuredClone==='function'?structuredClone(state):JSON.parse(JSON.stringify(state));
+  const saveQueue=window.createRevisionedSaveQueue({getState:copyState,getRevision:()=>revision,setRevision:value=>{revision=value;},save:(snapshot,expected)=>tutoring.call('save',snapshot,expected,UNIT),load:()=>tutoring.call('load',null,null,UNIT),mergeState:remote=>{state=window.mergeGrammarState(state,remote);persist();},onSaved:result=>{tutoring.saving('done');tutoring.setStatus(result.delivery==='pending'?'Saved · tutor report is retrying.':'Saved · tutor report updated.');},onError:error=>{tutoring.saving('error');recovery(error);}});
   function recovery(error){const controls=document.createElement('p'),retry=document.createElement('button'),back=document.createElement('a');retry.className='secondary';retry.textContent='Try again';retry.onclick=()=>save();back.href='../tutoring/#catalog';back.textContent='Back to My Learning';controls.append(retry,' ',back);app.append(controls);tutoring.setStatus('Saved on this device. '+error.message);}
   function save(){persist();if(!tutoring?.authenticated||!state.current)return Promise.resolve();tutoring.saving('queued');return saveQueue.enqueue().catch(error=>({saved:false,error}));}
   function parseBank(text){

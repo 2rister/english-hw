@@ -18,8 +18,12 @@
   const gated = !authenticated && !qaContext() && !previewToken;
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
-    if (crypto.randomUUID) return crypto.randomUUID();
-    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    // Some Telegram wrappers expose no global `crypto`. This is a routing id, not a secret, so a
+    // local fallback keeps the lesson renderable while the bridge is unavailable.
+    const webCrypto = window.crypto;
+    if (webCrypto?.randomUUID) return webCrypto.randomUUID();
+    if (!webCrypto?.getRandomValues) return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const bytes = webCrypto.getRandomValues(new Uint8Array(16));
     bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
     const hex = Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
     return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
