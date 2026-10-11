@@ -1,5 +1,11 @@
 # Changelog — Хасиева Софья · Go Getter 4 Mini App
 
+## 2026-10-11
+
+- Grammar Snack now records a wrong theory quick-check as its own revisioned error event before the mastery test starts. The event retains the prompt, learner answer, correct answer, explanation and a unique ID; it is carried into the later mastery attempt without occupying one of its 20 answer slots.
+- Failed authenticated saves stay in the existing local retry queue and expose an accessible `Try again` control plus a return link. The public app does not report a successful tutor update until the existing Personal Tutoring bridge confirms it.
+- Verification: Grammar Snack contract tests and revision-queue merge/retry tests passed. The existing private-backend suite had already passed in the separate integration checkout; this frontend-only release does not alter Apps Script. The first real learner save still needs a read-only workbook receipt.
+
 ## 2026-10-10
 
 - **Device snapshot on open.** When the learner opens the authenticated Mini App, the whole `localStorage` is serialised and sent to a new `DeviceDumps` tab in the private workbook (`Telegram ID, Unit, Saved, Dump`), before any load/merge/save runs, so a day that never synced can be untangled from what the device still holds. It never fires in the tutor preview or in the unauthenticated browser build; a dump over 45 KB is rejected; the preview reports the learner's dump count and the latest dump for inspection. Backend @24, cache key `miso-motion-v23-20261010`.

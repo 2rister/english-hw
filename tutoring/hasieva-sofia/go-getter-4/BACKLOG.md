@@ -15,6 +15,7 @@
 
 ## Now — publish and confirm detailed tutor reports
 
+- [ ] After the 2026-10-11 Grammar Snack release, read back the first real authenticated learner save in `Progress` and `Results`; confirm the theory/mixed error report contains no duplicate event IDs. Do not alter Sonya's record during this audit.
 - [x] Gradually roll out Personal Tutoring v10: migrate pending Grammar Snack legacy errors into the aggregate report, persist before superseding, make retries idempotent, and guard the production E2E. Backend tests pass; same endpoint reports `tutoring-ready`. Real Telegram receipt remains unverified.
 - [x] Publish the guarded Personal Tutoring-only backend update to the existing deployment (`@9`); verify bridge readiness and retain active v8/source backups. No learner login, message, progress write, or frontend/content deployment was used.
 - [x] Add a guarded Apps Script release helper: read-only preflight by default, backup first, verify active endpoint/project and source drift, and require `--publish` before external writes.
