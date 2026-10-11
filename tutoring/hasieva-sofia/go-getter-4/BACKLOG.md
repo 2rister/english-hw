@@ -2,6 +2,10 @@
 
 ## Completed — 2026-10-11
 
+- [x] Allow full-sentence answers for Grammar Snack completion prompts without accepting a changed verb form.
+
+## Completed — 2026-10-11
+
 - [x] Accept standard contractions and learner typography in Grammar Snack typed answers without weakening grammar checks.
 
 ## Now — verify the published Miso interaction

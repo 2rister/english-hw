@@ -1,5 +1,10 @@
 # Changelog — Хасиева Софья · Go Getter 4 Mini App
 
+## 2026-10-11 — Grammar Snack completion answers
+
+- Accept both the missing words and the complete, grammatically equivalent sentence for `Complete:` prompts.
+- Clarified the input hint so learners know both answer forms are valid.
+
 ## 2026-10-11 — Grammar Snack answer normalization
 
 - Fixed false negatives for standard contractions, including curly-apostrophe input such as `doesn’t`.

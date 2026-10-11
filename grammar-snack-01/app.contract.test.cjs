@@ -30,3 +30,12 @@ test('accepts normal learner typography and contractions without accepting a wro
   assert.equal(matches("Mia doesn't plays tennis on Mondays", 'Mia does not play tennis on Mondays.'),false);
   assert.equal(matches('doesn’t normally cook / is making', 'does not normally cook; is making'),true);
 });
+
+test('accepts either the missing words or the complete sentence for a completion prompt',()=>{
+  const prompt='Complete: I ___ (not / understand) this instruction.';
+  assert.equal(matches('do not understand', 'do not understand', prompt),true);
+  assert.equal(matches("I don't understand this instruction", 'do not understand', prompt),true);
+  assert.equal(matches('I do not understand this instruction', 'do not understand', prompt),true);
+  assert.equal(matches('I do not understands this instruction', 'do not understand', prompt),false);
+  assert.match(app,/Type the missing words, or the full sentence/);
+});
