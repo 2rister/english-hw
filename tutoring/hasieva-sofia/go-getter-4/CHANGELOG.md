@@ -1,5 +1,11 @@
 # Changelog — Хасиева Софья · Go Getter 4 Mini App
 
+## 2026-10-11 — Grammar Snack answer normalization
+
+- Fixed false negatives for standard contractions, including curly-apostrophe input such as `doesn’t`.
+- Normalize non-breaking/zero-width whitespace and harmless final punctuation while keeping verb forms and word order strict.
+- Added regression coverage for single and two-part answers, plus cache-busted the learner app script for Telegram WebViews.
+
 ## 2026-10-11
 
 - Grammar Snack now records a wrong theory quick-check as its own revisioned error event before the mastery test starts. The event retains the prompt, learner answer, correct answer, explanation and a unique ID; it is carried into the later mastery attempt without occupying one of its 20 answer slots.

@@ -7,11 +7,12 @@
   const key='grammar-snack-01-v1'+(tutoring?.authenticated?':'+tutoring.userId:'');
   const fresh=()=>({kind:UNIT,variantIndex:0,history:[],current:null,theoryStep:0,theoryDone:false});
   let state=load();
-  const normalise=value=>String(value||'').toLowerCase().trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
+  const normalise=value=>String(value||'').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[’‘‛´`]/g,"'").toLowerCase().replace(/\bwon't\b/g,'will not').replace(/\bcan't\b/g,'cannot').replace(/\bshan't\b/g,'shall not').replace(/\b(\w+)n't\b/g,'$1 not').trim().replace(/[.!?]+$/,'').replace(/\s+/g,' ');
+  const withoutTerminalPunctuation=value=>normalise(value).replace(/[,:;]+$/,'');
   const matches=(value,answer)=>{
     const expected=normalise(answer), actual=normalise(value);
-    if(!expected.includes(';'))return actual===expected;
-    return actual.split(/\s*[;,/]\s*/).map(normalise).join(';')===expected.split(';').map(normalise).join(';');
+    if(!expected.includes(';'))return withoutTerminalPunctuation(actual)===withoutTerminalPunctuation(expected);
+    return actual.split(/\s*[;,/]\s*/).map(withoutTerminalPunctuation).join(';')===expected.split(';').map(withoutTerminalPunctuation).join(';');
   };
   function load(){try{return {...fresh(),...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fresh();}}
   function persist(){localStorage.setItem(key,JSON.stringify(state)); document.querySelector('#scorePill').textContent=state.current?`${state.current.correct}/${state.current.index}`:'—';}

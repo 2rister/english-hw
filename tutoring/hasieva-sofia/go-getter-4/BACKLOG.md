@@ -1,5 +1,9 @@
 # Backlog — Хасиева Софья · Go Getter 4 Mini App
 
+## Completed — 2026-10-11
+
+- [x] Accept standard contractions and learner typography in Grammar Snack typed answers without weakening grammar checks.
+
 ## Now — verify the published Miso interaction
 
 - [x] Publish the catalog Miso interaction to GitHub Pages: base colour alignment, expressive reaction and the same transition played in reverse for the return to the book pose. Public cache-busted catalog route is available at `tutoring/?v=miso-catalog-motion-v5-20261010#catalog`.
