@@ -1,7 +1,8 @@
 /** Synthetic preview only: checks DOM focus, not a physical iOS keyboard. */
 const { webkit, devices } = require('playwright-core');
 const assert = require('node:assert/strict');
-const { servePublishRoot } = require('./e2e-server.cjs');
+const fs=require('node:fs'),path=require('node:path');
+const { publishRoot, servePublishRoot } = require('./e2e-server.cjs');
 
 async function state(page) {
   return page.evaluate(() => new Promise((resolve, reject) => {
@@ -38,6 +39,7 @@ async function assertFocused(page) {
   const browser = await webkit.launch({ headless: true });
   const context = await browser.newContext({ ...devices['iPhone 17'] });
   const errors = [];
+  const bank=JSON.parse(fs.readFileSync(path.join(publishRoot,'vocab-space/unit2.json'),'utf8'));
   await context.route('**/*', route => {
     const request = route.request();
     return new URL(request.url()).origin === server.baseUrl && request.method() === 'GET' ? route.continue() : route.abort();
@@ -64,7 +66,8 @@ async function assertFocused(page) {
     await page.locator('#answer').press('Enter');
     assert.equal((await state(page)).session.index, 0, 'empty answer validation keeps current word');
     for (let index = 0; index < 25; index++) {
-      await page.locator('#answer').fill('synthetic answer');
+      const current=await state(page);
+      await page.locator('#answer').fill(bank.items.find(item=>item.id===current.session.ids[index]).english);
       if (index === 2) await page.evaluate(() => {
         const input = document.querySelector('#answer'), form = input.form;
         form.requestSubmit();

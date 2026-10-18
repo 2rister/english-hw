@@ -1,0 +1,67 @@
+import {useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {animate, motion, useMotionValue, useReducedMotion, useTransform} from 'motion/react';
+import {randomEffect} from './block-result.mjs';
+
+let lastEffect;
+const celebrated = new Set();
+const ease = [0.23, 1, 0.32, 1];
+const point = (percent, radius) => {
+  const angle = (-120 + percent * 2.4) * Math.PI / 180;
+  return [160 + Math.sin(angle) * radius, 166 - Math.cos(angle) * radius];
+};
+
+function FinishEffect({kind}) {
+  const wave = kind === 'wave', count = wave ? 4 : 32;
+  return createPortal(<div className={'finish-effects finish-'+kind} aria-hidden="true" data-celebration-effect={kind}>
+    {Array.from({length:count}, (_,i) => {
+      const angle = i * 2.39996, spread = 18 + (i % 8) * 3;
+      const x = Math.cos(angle) * spread, y = Math.sin(angle) * spread;
+      const firework = kind === 'fireworks', confetti = kind === 'confetti';
+      const origin = firework ? (i % 2 ? '28%' : '72%') : '50%';
+      const start = wave ? 'translate(-50%, -50%) scale(0.95)' : confetti ? 'translate(-50%, 35vh) rotate(0deg)' : 'translate(-50%, -50%) scale(0.95)';
+      const end = wave ? `translate(-50%, -50%) scale(${2.5+i*.3})` : confetti ? `translate(${x}vw, 48vh) rotate(${i*47}deg)` : `translate(${x}vw, ${y}vh) rotate(${i*29}deg)`;
+      return <motion.i key={i} className="finish-particle" style={{left:origin, '--particle-color':i%3===0?'#ff52ba':i%3===1?'#65f7f0':'#ffe898'}}
+        initial={{opacity:0,transform:start}} animate={{opacity:[0,1,0],transform:confetti?[start,`translate(${x*.8}vw, -30vh) rotate(${i*23}deg)`,end]:[start,end]}}
+        transition={{delay:1.1+(i%(wave?4:6))*.07,duration:wave?1.4:1.8,times:confetti?[0,.4,1]:undefined,ease:'linear'}}>
+        {kind==='stars'?'✦':null}
+      </motion.i>;
+    })}
+  </div>, document.body);
+}
+
+export default function SuccessCelebration({outcome, label, sessionId, completedNow}) {
+  const reduce = useReducedMotion(), [effect,setEffect] = useState(null);
+  const value = useMotionValue(completedNow===sessionId&&!reduce&&!celebrated.has(sessionId)?0:outcome.percent), count = useTransform(value, latest => Math.floor(latest));
+  const needle = useTransform(value, latest => {
+    const a=point(latest-37.5,4), tip=point(latest,91), b=point(latest+37.5,4);
+    return `M${a[0]} ${a[1]} L${tip[0]} ${tip[1]} L${b[0]} ${b[1]}Z`;
+  });
+  useEffect(() => {
+    if (completedNow !== sessionId || celebrated.has(sessionId)) return;
+    celebrated.add(sessionId);
+    if (reduce) return;
+    lastEffect = randomEffect(lastEffect);
+    setEffect(lastEffect);
+    value.set(0);
+    const playback = animate(value, outcome.percent, {duration:1.2,ease});
+    const timer = setTimeout(() => setEffect(null), 3300);
+    return () => { playback.stop();clearTimeout(timer);setEffect(null);value.set(outcome.percent); };
+  }, [completedNow, sessionId, outcome.percent, reduce, value]);
+  return <>{effect&&!reduce&&<FinishEffect kind={effect}/>}<section className="finish-dashboard" data-block-passed="true" data-score-percent={outcome.percent}>
+    <div className="finish-topline"><span>ROUND CLEAR</span><span>{outcome.supported?'GUIDED PRACTICE':'INDEPENDENT CHECK'}</span></div>
+    <div className="finish-dial">
+      <svg viewBox="0 0 320 260" aria-hidden="true" className="finish-gauge">
+        <defs><linearGradient id="finishGaugeColor"><stop stopColor="#65f7f0"/><stop offset=".7" stopColor="#65f7f0"/><stop offset="1" stopColor="#ff52ba"/></linearGradient></defs>
+        <path d="M64.737 221 A110 110 0 1 1 255.263 221" fill="none" stroke="#30333f" strokeWidth="10"/>
+        <path d="M64.737 221 A110 110 0 1 1 255.263 221" fill="none" stroke="url(#finishGaugeColor)" strokeWidth="10" pathLength="100" strokeDasharray={`${outcome.percent} 100`}/>
+        {Array.from({length:21},(_,i)=>{const a=point(i*5,i%5?122:120),b=point(i*5,i%5?127:132);return <line key={i} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={i>=17?'#ff52ba':'#858997'} strokeWidth={i%5?1:2}/>;})}
+        {[0,25,50,75,100].map(n=>{const p=point(n,146);return <text key={n} x={p[0]} y={p[1]} textAnchor="middle" dominantBaseline="middle" className="finish-tick">{n}</text>;})}
+        <motion.path className="finish-needle" d={needle} fill="#ff52ba"/><circle className="finish-pivot" cx="160" cy="166" r="7" fill="#f5f8ff"/>
+      </svg>
+      <h1 className="finish-score" aria-label={label}><motion.span aria-hidden="true">{count}</motion.span><span aria-hidden="true">%</span></h1>
+    </div>
+    <p className="finish-score-detail">{outcome.correct} / {outcome.total} {outcome.supported?'correct with support':'correct independently'}</p>
+    <p className="finish-clear">{outcome.percent===100?'PERFECT RUN':'BLOCK COMPLETE'} <span>85% TO PASS</span></p>
+  </section></>;
+}

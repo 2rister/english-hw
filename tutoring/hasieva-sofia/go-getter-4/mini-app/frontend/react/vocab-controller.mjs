@@ -1,5 +1,5 @@
 import { validateEvent, wordStats, pickRound, shuffle, openStore, createSync, createCommitter } from "./vocab-ports.mjs";
-import { chooseStory, repairWords } from './story-practice.mjs';
+import { chooseStory, repairWords, storyProgress } from './story-practice.mjs';
 function secureId(crypto = globalThis.crypto) {
   if (crypto?.randomUUID) return crypto.randomUUID();
   if (!crypto?.getRandomValues) throw Error("Secure answer IDs are unavailable. Reopen the app in Telegram.");
@@ -13,10 +13,10 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
   let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, audioStatus = "idle", audioEpoch = 0, paperPending = 0;
   let message = { text: "Loading your word set…", confirmed: false };
   const listeners = /* @__PURE__ */ new Set(), player = createPlayer();
-  let snapshot;
+  let snapshot, completedNow = null;
   function emit() {
     if (!disposed) {
-      snapshot = { bank, state, saving, paperPending, loading, error, playing, audioStatus, message, hash: navigation.hash.slice(1) };
+      snapshot = { bank, state, completedNow, saving, paperPending, loading, error, playing, audioStatus, message, hash: navigation.hash.slice(1) };
       listeners.forEach((fn) => fn());
     }
   }
@@ -98,12 +98,21 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
   }
   async function start(mode, diagnostic = false, options = {}) {
     if (saving || !state) return;
+    if (mode === "exam" && options.limit === 25 && !storyProgress(bank, state.events).some(round => round.passed)) {
+      notify("Reach at least 85% in a story to unlock the independent check. Repair is always available.");
+      return;
+    }
     if (state.session && state.session.index < state.session.ids.length && !confirmStart("Start a new exercise instead of the unfinished one? Your recorded answers will be kept.")) return;
     saving = true;
     emit();
     try {
       let ids, storyId;
-      if (options.story) ({ids, storyId} = chooseStory(bank, state.events));
+      if (options.retry && state.session) {
+        mode = state.session.mode;
+        storyId = state.session.storyId;
+        ids = [...new Set(state.session.ids)];
+      }
+      else if (options.story) ({ids, storyId} = chooseStory(bank, state.events));
       else if (options.repair) {
         const repairs = repairWords(state.events);
         ids = repairs.length ? shuffle(repairs).slice(0,9) : pickRound(bank,state.events,mode);
@@ -116,6 +125,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       await commit((next) => {
         next.session = { id: secureId(), mode, storyId, ids, index: 0, feedback: null, hinted: false, pasted: false, draft: "", variant: next.day === 1 ? 0 : 1, results: [], retried: [], paperAnswers: {}, paperRequestIds: Object.fromEntries(ids.map((id) => [id, secureId()])) };
       });
+      completedNow = null;
       go("practice");
     } catch (cause) {
       notify("Exercise not saved: " + cause.message);
@@ -239,7 +249,10 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       if (disposed) return;
       const persist = createCommitter(state, store);
       commit = async (change) => {
+        const previous = state.session;
         await persist(change);
+        const current = state.session;
+        if (current?.id === previous?.id && previous && previous.index < previous.ids.length && current.index >= current.ids.length) completedNow = current.id;
         emit();
       };
       sync = makeSync({ endpoint: config.endpoint, initData: tg?.initData, bank, state, commit, notify, request });
