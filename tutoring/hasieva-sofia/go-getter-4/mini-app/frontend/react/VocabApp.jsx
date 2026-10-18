@@ -1,5 +1,7 @@
+import Answer from "./VocabAnswer.jsx";
+import {ActionButton, AudioControl, Reveal, ResultEntrance, MotionConfig} from "./VocabMotion.jsx";
 import { stories, storyParts } from "./story-practice.mjs";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createVocabController } from "./vocab-controller.mjs";
 import { summary, wordStats, gap, mask } from "./vocab-ports.mjs";
@@ -8,40 +10,56 @@ const dayNotes = [
   "Day 2 · Build confidence. Review your mistakes, then try the words in new sentences. Take short rounds and do one mini dictation on paper.",
   "Day 3 · Check yourself. Practise difficult words first. Then take the mixed dictation: answers appear at the end. Finish with a short dictation on paper."
 ];
-function Head({ title, copy, children }) {
-  return <section className="vocab-hero">{children}<p className="vocab-eyebrow">VOCAB SPACE / UNIT 02</p><h1>{title}</h1><p className="vocab-intro">{copy}</p></section>;
+function Head({ title, copy, children, compact=false }) {
+  return <section className={"vocab-hero"+(compact?" is-compact":"")}>{children}<h1>{title}</h1><p className="vocab-intro">{copy}</p></section>;
 }
-function AudioButton({ controller: c, snapshot: s, item, context = false, variant = 0 }) {
-  return <button type="button" className="vocab-play" aria-label={context ? "Listen to the sentence" : "Listen to the word or phrase"} disabled={s.playing === `${item.id}:${context}:${variant}`} onClick={() => c.play(item, context, variant)}>▶ Listen</button>;
+function AudioButton({ controller:c, snapshot:s, item, context=false, variant=0 }) {
+  return <AudioControl controller={c} snapshot={s} target={`${item.id}:${context}:${variant}`}
+    play={()=>c.play(item,context,variant)} label="Listen"
+    ariaLabel={context?"Listen to the sentence":"Listen to the word or phrase"} />;
 }
 function Library({ controller: c }) {
   return <><Head title="Words that stay." copy="Listen. Recall. Write. Your space for words that stay with you."><div className="vocab-orbit">Aa</div></Head><button type="button" className="vocab-unit" onClick={() => c.go("unit-2")}><span className="vocab-unit-number">02</span><div><p className="vocab-eyebrow">GO GETTER 4 / UNIT 2</p><h2>Home &amp; Housework</h2><p>81 words and phrases · 3 days of practice · dictation and new contexts</p></div><span className="vocab-cta">Open →</span></button><p className="vocab-note">Models help you learn. Independent answers show what you remember.</p></>;
 }
-function Home({ controller: c, snapshot: s }) {
+function Home({ controller:c, snapshot:s }) {
   const stats = summary(s.bank, s.state.events), options = [["Listen and write", stats.checked < 81 ? "Try the next unchecked words. No translation before you answer." : "A short mixed round, starting with difficult words.", () => c.start("listen", true)], ["Words in context", "Listen to new sentences and write the complete missing word or phrase.", () => c.start("context")], ["My difficult words", stats.weak ? `${stats.weak} words were incorrect in your latest independent attempt.` : "Practise the spelling. Remember every word in a phrase.", () => c.start("listen")], ["Build the spelling", "Complete the missing letters. This is supported practice, not an independent check.", () => c.start("letters")], ["Dictation · all 81", "Random order. No hints. Check your answers after the final word.", () => c.start("exam")], ["Paper dictation", "Take a blank sheet. Listen to 9 words or phrases, then check your own work.", () => c.start("paper")]];
-  return <><button className="back-button" onClick={() => c.go("")}>← All sets</button><Head title="Home & Housework" copy="Three days to practise recalling and spelling words from English audio." /><section className="vocab-stats">{[[stats.checked + "/81", "checked by listening"], [stats.written + "/81", "latest answer correct"], [stats.context + "/81", "correct in context"], [stats.retained + "/81", "confirmed on different days"]].map(([value, label]) => <div className="vocab-stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}</section>{s.state.session && <button className="vocab-resume" onClick={() => c.go("practice")}>Resume your exercise →</button>}<nav className="vocab-days" aria-label="Practice plan">{["1 · Discover", "2 · Practise", "3 · Check"].map((label, index) => <button key={label} className="secondary" aria-pressed={s.state.day === index + 1} disabled={s.saving} onClick={() => c.day(index + 1)}>{label}</button>)}</nav><p className="vocab-day-note">{dayNotes[s.state.day - 1]}</p><section className="story-plan" aria-labelledby="storyPlanTitle"><p className="vocab-eyebrow">SPELLING / STEP BY STEP</p><h2 id="storyPlanTitle">25-word story practice</h2><p>Four new stories cover all 81 words and phrases. Each story has 25 gaps. The first letter stays; each underscore is one missing letter.</p><div className="vocab-actions"><button className="vocab-action is-main" disabled={s.saving} onClick={() => c.start("exam", false, {story:true})}><strong>1 · Story gaps · 25</strong><span>Listen, read and complete a new story. Check all answers at the end.</span></button><button className="vocab-action" disabled={s.saving} onClick={() => c.start("listen", false, {repair:true})}><strong>2 · Repair my spellings</strong><span>Recall difficult words without a model. A correct answer with help does not clear a mistake.</span></button><button className="vocab-action" disabled={s.saving} onClick={() => c.start("exam", false, {limit:25})}><strong>3 · Independent check · 25</strong><span>A fresh mixed dictation, without first letters, hints or a word list.</span></button></div><p className="vocab-note">Try one story, repair mistakes, then take a 10–20 minute break. Check again without clues. Aim for 25/25 twice, with a break between rounds. In the morning, do one short recall round.</p></section><div className="vocab-actions">{options.map(([title, copy, action], index) => <button key={title} className={"vocab-action" + (index === (s.state.day === 3 ? 4 : s.state.day === 2 ? 1 : 0) ? " is-main" : "")} disabled={s.saving} onClick={action}><strong>{title}</strong><span>{copy}</span></button>)}</div><button className="secondary" onClick={() => c.go("words")}>My 81 words →</button><p className="vocab-note">Take short rounds and breaks. Answers with hints do not count as independent success. The final score needs server confirmations on different days. Three days of practice do not measure long-term retention.</p></>;
-}
-function Answer({ controller: c, snapshot: s, item }) {
-  const session = s.state.session, [value, setValue] = useState(session.draft || ""), pasted = useRef(Boolean(session.pasted));
-  return <><form onSubmit={(event) => {
-    event.preventDefault();
-    c.submitAnswer(value, pasted.current);
-  }}><label className="vocab-input-label" htmlFor="answer">Write the full word or phrase in English</label><input id="answer" name="answer" type="text" className="answer-input" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} enterKeyHint="done" maxLength={240} value={value} disabled={s.saving} onPaste={() => {
-    pasted.current = true;
-    c.draft(value, true);
-  }} onChange={(event) => {
-    setValue(event.target.value);
-    c.draft(event.target.value);
-  }} /><button type="submit" className="primary" disabled={s.saving}>{session.mode === "exam" ? "Save answer →" : "Check"}</button></form>{session.mode !== "exam" && <><button className="secondary" disabled={session.hinted || s.saving} onClick={() => c.hint()}>Need a hint</button><div className="vocab-feedback" hidden={!session.hinted}><strong>{item.english}</strong><p>{item.meaning}</p><p>{item.tip}</p></div></>}<p className="vocab-note">{session.mode === "exam" ? "Your answers and score appear at the end. You can replay the audio." : "You can listen again. Spaces and words like the / of are part of your answer."}</p></>;
+  return <><button className="back-button" onClick={()=>c.go("")}>← All sets</button>
+    <Head title="Home & Housework" copy="Practise spelling, one short round at a time." compact />
+    {s.state.session && <ActionButton className="vocab-resume" onClick={()=>c.go("practice")}>Resume your exercise →</ActionButton>}
+    <section className="story-plan" aria-labelledby="storyPlanTitle">
+      <h2 id="storyPlanTitle">25-word story practice</h2>
+      <p className="story-plan-copy">Listen and fill 25 gaps. First letters help you learn.</p>
+      <div className="vocab-actions">
+        <ActionButton className="vocab-action is-main" disabled={s.saving} onClick={()=>c.start("exam",false,{story:true})}><strong>1 · Story gaps · 25</strong><span>A new story, with answers checked at the end.</span></ActionButton>
+        <ActionButton className="vocab-action" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}><strong>2 · Repair my spellings</strong><span>Recall difficult words without a model.</span></ActionButton>
+        <ActionButton className="vocab-action" disabled={s.saving} onClick={()=>c.start("exam",false,{limit:25})}><strong>3 · Independent check · 25</strong><span>No first letters, hints or word list.</span></ActionButton>
+      </div>
+      <p className="vocab-note">Story → repair → a 10–20 minute break → independent check. Aim for 25/25 twice, with a break between rounds.</p>
+    </section>
+    <Reveal label="My progress"><section className="vocab-stats">{[[stats.checked+"/81","checked by listening"],[stats.written+"/81","latest answer correct"],[stats.context+"/81","correct in context"],[stats.retained+"/81","confirmed on different days"]].map(([value,label])=><div className="vocab-stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}</section><p className="vocab-note">First-letter practice and answers with hints do not raise independent scores. Confirmation on different days does not yet measure long-term retention.</p></Reveal>
+    <Reveal label="More practice"><nav className="vocab-days" aria-label="Practice focus">{["1 · Discover","2 · Practise","3 · Check"].map((label,index)=><ActionButton key={label} className="secondary" aria-pressed={s.state.day===index+1} disabled={s.saving} onClick={()=>c.day(index+1)}>{label}</ActionButton>)}</nav><p className="vocab-day-note">{dayNotes[s.state.day-1]}</p><div className="vocab-actions">{options.map(([title,copy,action])=><ActionButton key={title} className="vocab-action" disabled={s.saving} onClick={action}><strong>{title}</strong><span>{copy}</span></ActionButton>)}</div><ActionButton className="secondary" onClick={()=>c.go("words")}>My 81 words →</ActionButton><p className="vocab-note">Four practice stories cover all 81 words and phrases. Work in short rounds and take breaks.</p></Reveal>
+  </>;
 }
 function StoryParagraph({ parts, session }) {
   return <p className="story-text">{parts.map((part,index) => part.text ? <span key={index}>{part.text}</span> : <span key={index} className={"story-gap" + (part.number === session.index + 1 ? " is-current" : "")} data-gap-number={part.number}><sup>{part.number}</sup>{session.results[part.number-1]?.answer || part.cue}</span>)}</p>;
 }
-function StoryPractice({ controller: c, snapshot: s, item }) {
-  const session=s.state.session, story=stories.find(story => story.id===session.storyId);
+function StoryPractice({ controller:c, snapshot:s, item }) {
+  const session=s.state.session,story=stories.find(story=>story.id===session.storyId);
   if (!story) return <p role="alert">This practice story is unavailable. Return to the plan and start a new round.</p>;
-  const paragraphs=storyParts(story,s.bank), paragraph=Math.floor(session.index/5);
-  return <><div className="vocab-session-head"><button className="back-button" onClick={() => c.pause()}>← Pause</button><span>Gap {session.index+1} / 25 · Story practice</span></div><div className="vocab-progress"><span style={{width:`${session.index/25*100}%`}} /></div><section className="vocab-exercise"><p className="vocab-eyebrow">GUIDED DICTATION / 25 GAPS</p><h1>{story.title}</h1><p className="vocab-note">Listen and write the full word or phrase for the highlighted gap. The first letter is a clue. Answers appear only at the end.</p><button className="vocab-play" onClick={() => s.playing ? c.stop() : c.playStory(story.id,paragraph)}>{s.playing ? "■ Stop audio" : "▶ Listen to this paragraph"}</button><StoryParagraph parts={paragraphs[paragraph]} session={session} /><p className="story-current">Gap {session.index+1}: <strong>{paragraphs[paragraph].find(part => part.number===session.index+1)?.cue}</strong></p><Answer key={session.id+":"+session.index} controller={c} snapshot={s} item={item} /><details className="story-overview"><summary>Read the whole story · 25 gaps</summary><button className="secondary" disabled={Boolean(s.playing)} onClick={() => c.playStory(story.id)}>Listen to the whole story</button>{paragraphs.map((parts,index) => <StoryParagraph key={index} parts={parts} session={session} />)}</details><p className="vocab-note">First-letter clues make this guided practice. This score is separate from independent spelling.</p></section></>;
+  const paragraphs=storyParts(story,s.bank),paragraph=Math.floor(session.index/5);
+  return <><div className="vocab-session-head"><button className="back-button" onClick={()=>c.pause()}>← Pause</button><span>Gap {session.index+1} / 25 · Story practice</span></div>
+    <div className="vocab-progress" role="progressbar" aria-label="Story progress" aria-valuemin={0} aria-valuemax={25} aria-valuenow={session.index}><span style={{transform:`scaleX(${session.index/25})`}} /></div>
+    <section className="vocab-exercise"><h1>{story.title}</h1>
+      <p className="story-instruction">Write the highlighted word. First letters are clues.</p>
+      <StoryParagraph parts={paragraphs[paragraph]} session={session}/>
+      <p className="story-current">Gap {session.index+1}: <strong>{paragraphs[paragraph].find(part=>part.number===session.index+1)?.cue}</strong></p>
+      <div className="answer-workspace"><AudioControl controller={c} snapshot={s} target={`story:${story.id}:${paragraph}`} play={()=>c.playStory(story.id,paragraph)} label="Listen to this paragraph"/>
+        {s.playing?.startsWith(`story:${story.id}:`) && s.playing!==`story:${story.id}:${paragraph}` && <ActionButton className="secondary audio-stop-near" preserveInput onClick={()=>c.stop()}>Stop audio</ActionButton>}
+        <Answer key={session.id} controller={c} snapshot={s} item={item}/>
+      </div>
+      <Reveal label="Read the whole story · 25 gaps" className="story-overview"><AudioControl controller={c} snapshot={s} target={`story:${story.id}:all`} play={()=>c.playStory(story.id)} label="Listen to the whole story"/>{paragraphs.map((parts,index)=><StoryParagraph key={index} parts={parts} session={session}/>)}</Reveal>
+      <p className="vocab-note">First-letter scores are guided practice, separate from independent spelling.</p>
+    </section></>;
 }
 function Practice({ controller: c, snapshot: s }) {
   const session = s.state.session;
@@ -54,7 +72,7 @@ function Practice({ controller: c, snapshot: s }) {
   if (!item) return <p role="alert">This saved word is no longer in the set. Return to the plan and start a new round.</p>;
   if (session.storyId) return <StoryPractice controller={c} snapshot={s} item={item} />;
   const labels = { listen: "Listen and write", context: "In a new context", letters: "Build the spelling", exam: "Independent dictation", paper: "Paper dictation" }, result = session.feedback;
-  return <><div className="vocab-session-head"><button className="back-button" onClick={() => c.pause()}>← Pause</button><span>{session.index + 1} / {session.ids.length} · {labels[session.mode]}</span></div><div className="vocab-progress"><span style={{ width: `${session.index / session.ids.length * 100}%` }} /></div><section className="vocab-exercise"><p className="vocab-eyebrow">UNIT 2 / YOUR TURN</p><h1>{session.mode === "paper" ? "Listen and write on paper." : session.mode === "context" ? "Which word fits here?" : "Listen. Recall. Write."}</h1>{session.mode === "context" && <><p className="vocab-context">{gap(item, session.variant)}</p><p className="vocab-note">{item.meaning}</p></>}{session.mode === "letters" && <><p>{item.meaning}</p><p className="vocab-mask">{mask(item)}</p></>}<AudioButton controller={c} snapshot={s} item={item} context={session.mode === "context"} variant={session.variant} />{session.mode === "paper" ? <><p className="vocab-note">Write the full word or phrase. Model answers appear after all nine items.</p><button className="primary" disabled={s.saving} onClick={() => c.next()}>Written · next →</button></> : result ? <><div role="status" className={"vocab-feedback" + (result.correct ? "" : " is-wrong")}><strong>{result.correct ? result.hinted ? "Correct with support." : "Correct on your own." : "Let’s review this one."}</strong><p>{item.english}</p>{!result.correct && <><p>Your answer: {result.answer}</p><p>{item.tip}</p></>}{(!result.correct || result.hinted) && <><p>{item.meaning}</p><p>{item.contexts[session.variant]}</p></>}</div><button className="primary" disabled={s.saving} onClick={() => c.next()}>Next →</button></> : <Answer key={session.id + ":" + session.index} controller={c} snapshot={s} item={item} />}</section></>;
+  return <><div className="vocab-session-head"><button className="back-button" onClick={() => c.pause()}>← Pause</button><span>{session.index + 1} / {session.ids.length} · {labels[session.mode]}</span></div><div className="vocab-progress"><span style={{ transform: `scaleX(${session.index / session.ids.length})` }} /></div><section className="vocab-exercise"><p className="vocab-eyebrow">UNIT 2 / YOUR TURN</p><h1>{session.mode === "paper" ? "Listen and write on paper." : session.mode === "context" ? "Which word fits here?" : "Listen. Recall. Write."}</h1>{session.mode === "context" && <><p className="vocab-context">{gap(item, session.variant)}</p><p className="vocab-note">{item.meaning}</p></>}{session.mode === "letters" && <><p>{item.meaning}</p><p className="vocab-mask">{mask(item)}</p></>}<AudioButton controller={c} snapshot={s} item={item} context={session.mode === "context"} variant={session.variant} />{session.mode === "paper" ? <><p className="vocab-note">Write the full word or phrase. Model answers appear after all nine items.</p><button className="primary" disabled={s.saving} onClick={() => c.next()}>Written · next →</button></> : result ? <><div role="status" className={"vocab-feedback" + (result.correct ? "" : " is-wrong")}><strong>{result.correct ? result.hinted ? "Correct with support." : "Correct on your own." : "Let’s review this one."}</strong><p>{item.english}</p>{!result.correct && <><p>Your answer: {result.answer}</p><p>{item.tip}</p></>}{(!result.correct || result.hinted) && <><p>{item.meaning}</p><p>{item.contexts[session.variant]}</p></>}</div><button className="primary" disabled={s.saving} onClick={() => c.next()}>Next →</button></> : <Answer key={session.id} controller={c} snapshot={s} item={item} />}</section></>;
 }
 function PaperRow({ controller: c, id, item, initial }) {
   const [checked, setChecked] = useState(initial), [pending, setPending] = useState(false);
@@ -67,15 +85,19 @@ function PaperRow({ controller: c, id, item, initial }) {
     setPending(false);
   }} /><span>{item.english}</span></label>;
 }
-function Results({ controller: c, snapshot: s }) {
-  const session = s.state.session, independent = session.results.filter((event) => !event.hinted), scored = session.storyId ? session.results : independent, correct = scored.filter((event) => event.correct).length, errors = session.results.filter((event) => !event.correct);
-  return <><Head title={session.mode === "paper" ? "Now check your paper." : "One step closer."} copy={session.mode === "paper" ? "Now look at the model answers. Tick only answers with no mistakes, including every word in a phrase." : session.storyId ? "First-letter clues were provided. Practise mistakes without a model, then take an independent check after a break." : "Here are your independent answers. Corrections and hints are counted separately."} />{session.mode === "paper" && !session.paperSaved ? <><div>{session.ids.map((id) => {
-    const item = s.bank.items.find((word) => word.id === id);
-    return <PaperRow key={id} controller={c} id={id} item={item} initial={Boolean(session.paperAnswers[id])} />;
-  })}</div><p className="vocab-note">This is your own self-check. It does not count as server-verified spelling or replace a teacher’s check.</p><button className="primary" disabled={s.saving || s.paperPending > 0} onClick={() => c.paperSave()}>Save self-check</button></> : <><h2>{session.mode === "paper" ? "Self-check saved." : `${correct} / ${scored.length} ${session.storyId ? "answers correct with first-letter clues" : "independent answers correct"}`}</h2>{session.mode === "exam" && <p className="vocab-note">This score is for this round. Your score on paper may be different. Review mistakes after a break.</p>}{errors.length > 0 && <ul className="vocab-result-list">{errors.map((event) => {
-    const item = s.bank.items.find((word) => word.id === event.itemId);
-    return <li key={event.requestId}>{event.answer} → {item.english}. {item.tip}</li>;
-  })}</ul>}{errors.length > 0 && <button className="primary" disabled={s.saving} onClick={() => c.start("listen",false,{repair:true})}>Repair these spellings →</button>}<button className="primary" disabled={s.saving} onClick={() => c.clear("unit-2")}>Back to the practice plan →</button></>}</>;
+function Results({ controller:c, snapshot:s }) {
+  const session=s.state.session,independent=session.results.filter(event=>!event.hinted),scored=session.storyId?session.results:independent;
+  const correct=scored.filter(event=>event.correct).length,errors=session.results.filter(event=>event.correct===false);
+  const paper=session.mode==="paper",selfCheck=paper&&!session.paperSaved;
+  const scoreLabel=paper?"Self-check saved.":`${correct} / ${scored.length} ${session.storyId?"answers correct with first-letter clues":"independent answers correct"}`;
+  return <ResultEntrance>{selfCheck?<><h1 className="result-title">Now check your paper.</h1><p className="vocab-intro">Tick only answers with no mistakes, including every word in a phrase.</p><div>{session.ids.map(id=>{const item=s.bank.items.find(word=>word.id===id);return <PaperRow key={id} controller={c} id={id} item={item} initial={Boolean(session.paperAnswers[id])}/>;})}</div><p className="vocab-note">This is your own self-check, separate from verified spelling.</p><ActionButton className="primary" disabled={s.saving||s.paperPending>0} onClick={()=>c.paperSave()}>Save self-check</ActionButton></>:<>
+    <h1 className={paper?"result-title":"result-score"} aria-label={scoreLabel}>{paper?scoreLabel:<><span>{correct} / {scored.length}</span><small>{session.storyId?"answers correct with first-letter clues":"independent answers correct"}</small></>}</h1>
+    <p className="vocab-intro">{paper?"Your paper self-check has been recorded.":session.storyId?"First-letter clues were provided. Repair mistakes without a model, then check independently after a break.":"Your independent answers for this round. Review mistakes after a break."}</p>
+    {errors.length>0&&<><h2 className="result-section-title">Words to revisit</h2><ul className="vocab-result-list">{errors.map(event=>{const item=s.bank.items.find(word=>word.id===event.itemId);return <li key={event.requestId}><strong>{item.english}</strong><span>Your answer: {event.answer}</span><p>{item.tip}</p></li>;})}</ul></>}
+    <div className="result-actions">{errors.length>0&&<ActionButton className="primary" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}>Repair these spellings →</ActionButton>}
+      <ActionButton className={errors.length>0?"secondary":"primary"} disabled={s.saving} onClick={()=>c.clear("unit-2")}>Back to the practice plan →</ActionButton></div>
+    {session.mode==="exam"&&<p className="vocab-note">This round measures practice, not a guaranteed score on paper.</p>}
+  </>}</ResultEntrance>;
 }
 function Words({ controller: c, snapshot: s }) {
   const session = s.state.session;
@@ -105,4 +127,4 @@ function VocabApp({ controller: c }) {
 }
 const controller = createVocabController({ tg: window.Telegram?.WebApp }), root = document.querySelector("#app");
 root.dataset.renderer = "react";
-createRoot(root).render(<VocabApp controller={controller} />);
+createRoot(root).render(<MotionConfig reducedMotion="user"><VocabApp controller={controller} /></MotionConfig>);

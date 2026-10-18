@@ -36,12 +36,12 @@ test('a supported correction keeps a spelling in repair until an independent ans
   assert.deepEqual(repairWords([wrong,{...wrong,correct:true,hinted:false,mode:'listen'}]),[]);
 });
 
-async function setup(){
+async function setup(player){
   let saved={events:[],session:null,day:1};
   const c=createVocabController({tg:null,events:new EventTarget(),navigation:{hash:''},confirmStart:()=>true,
     pageDocument:{hidden:false,documentElement:{style:{setProperty(){}}},addEventListener(){},removeEventListener(){}},
     request:async url=>({ok:true,json:async()=>url==='unit2.json'?bank:{endpoint:''}}),
-    createPlayer:()=>({pause(){},play:async()=>{},addEventListener(){},removeEventListener(){}}),
+    createPlayer:()=>player||({pause(){},play:async()=>{},addEventListener(){},removeEventListener(){}}),
     storeOpen:async()=>({load:async()=>structuredClone(saved),save:async state=>{saved=structuredClone(state);return saved;}}),
     makeSync:()=>({flush:async()=>{}})});
   await c.boot();return c;
@@ -83,5 +83,24 @@ test('successful short checks reach every topic word before settling into review
       for(const id of ids){covered.add(id);await c.submitAnswer(bank.items.find(item=>item.id===id).english);}
     }
     assert.equal(covered.size,81);
+  }finally{c.dispose();}
+});
+
+
+test('audio exposes loading, supports cancellation and ignores an old play promise',async()=>{
+  const pending=[],handlers={};
+  const player={pause(){},play:()=>new Promise((resolve,reject)=>pending.push({resolve,reject})),addEventListener:(name,fn)=>handlers[name]=fn,removeEventListener(){}};
+  const c=await setup(player);
+  try{
+    c.play(bank.items[0]);assert.equal(c.getSnapshot().audioStatus,'loading');
+    c.stop();pending[0].resolve();await Promise.resolve();assert.equal(c.getSnapshot().audioStatus,'idle');
+    c.play(bank.items[0]);c.play(bank.items[1]);pending[1].reject(Error('stale playback'));await Promise.resolve();
+    assert.equal(c.getSnapshot().audioStatus,'loading');assert.equal(c.getSnapshot().playing,`${bank.items[1].id}:false:0`);
+    pending[2].resolve();await Promise.resolve();assert.equal(c.getSnapshot().audioStatus,'playing');
+    handlers.ended();assert.equal(c.getSnapshot().audioStatus,'idle');
+    c.play(bank.items[0]);pending[3].reject(Error('unavailable'));await Promise.resolve();
+    assert.equal(c.getSnapshot().audioStatus,'idle');assert.match(c.getSnapshot().message.text,/Could not play/);
+    c.play(bank.items[0]);handlers.error();pending[4].resolve();await Promise.resolve();
+    assert.equal(c.getSnapshot().audioStatus,'idle');assert.equal(c.getSnapshot().playing,null);
   }finally{c.dispose();}
 });

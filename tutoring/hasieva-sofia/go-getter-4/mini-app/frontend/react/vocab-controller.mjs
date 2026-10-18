@@ -10,13 +10,13 @@ function secureId(crypto = globalThis.crypto) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 function createVocabController({ tg, request = fetch, events = window, pageDocument = document, navigation = location, confirmStart = confirm, createPlayer = () => new Audio(), storeOpen = openStore, makeSync = createSync }) {
-  let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, paperPending = 0;
+  let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, audioStatus = "idle", audioEpoch = 0, paperPending = 0;
   let message = { text: "Loading your word set…", confirmed: false };
   const listeners = /* @__PURE__ */ new Set(), player = createPlayer();
   let snapshot;
   function emit() {
     if (!disposed) {
-      snapshot = { bank, state, saving, paperPending, loading, error, playing, message, hash: navigation.hash.slice(1) };
+      snapshot = { bank, state, saving, paperPending, loading, error, playing, audioStatus, message, hash: navigation.hash.slice(1) };
       listeners.forEach((fn) => fn());
     }
   }
@@ -25,28 +25,43 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     emit();
   }
   const stopAudio = () => {
+    audioEpoch++;
     player.pause();
     playing = null;
+    audioStatus = "idle";
   };
   const audioEnded = () => {
+    audioEpoch++;
     playing = null;
+    audioStatus = "idle";
     emit();
   };
   const audioError = () => {
+    audioEpoch++;
     playing = null;
+    audioStatus = "idle";
     notify("Audio did not load. Your answer has not been counted. Please play it again.");
   };
   player.addEventListener("ended", audioEnded);
   player.addEventListener("error", audioError);
-  function playSource(source, key) {
+  async function playSource(source, key) {
     stopAudio();
-    player.src = source;
-    playing = key;
-    emit();
-    player.play().catch(() => {
+    const epoch = audioEpoch;
+    try {
+      player.src = source;
+      playing = key;
+      audioStatus = "loading";
+      emit();
+      await player.play();
+      if (epoch !== audioEpoch) return;
+      audioStatus = "playing";
+      emit();
+    } catch {
+      if (epoch !== audioEpoch) return;
       playing = null;
+      audioStatus = "idle";
       notify("Could not play the audio. Try again or check your connection.");
-    });
+    }
   }
   function play(item, context = false, variant = 0) {
     playSource(context ? `assets/audio/${item.id}-c${variant + 1}.mp3` : item.audio, `${item.id}:${context}:${variant}`);

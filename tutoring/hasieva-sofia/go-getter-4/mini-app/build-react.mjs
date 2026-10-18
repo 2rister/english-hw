@@ -9,7 +9,7 @@ for(const [entry,file,format] of [['GrammarApp.jsx','grammar-snack-01/app.js','i
 }
 for(const file of ['tutoring/index.html','street-style-week/index.html','grammar-snack-01/index.html','vocab-space/index.html']){
  const path=new URL(file,root),text=await readFile(path,'utf8');
- const version=file==='vocab-space/index.html'?'react-20261018-story1':'react-20261018';
+ const version=file==='vocab-space/index.html'?'react-20261018-motion1':'react-20261018';
  const output=text.replace(/(<script[^>]*\bsrc="(?:\.\.\/street-style-week\/)?app\.(?:js|mjs))(?:\?[^"\n]*)?"/,'$1?v='+version+'"');
  if(output!==text)await writeFile(path,output);
 }

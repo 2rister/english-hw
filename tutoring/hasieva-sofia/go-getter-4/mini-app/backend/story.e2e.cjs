@@ -19,12 +19,12 @@ async function saved(page,predicate){for(let n=0;n<100;n++){const current=await 
     await page.getByRole('button',{name:/1 · Story gaps · 25/}).click();
     await page.locator('#answer').waitFor();let current=await state(page);
     assert.equal(current.session.ids.length,25);assert.equal(current.session.mode,'exam');assert(current.session.storyId);
-    assert.equal(await page.locator('.story-gap.is-current').count(),2);
+    assert.equal(await page.locator('.story-gap.is-current').count(),1);
     assert.equal(await page.getByRole('button',{name:'Need a hint',exact:true}).count(),0);
     const first=bank.items.find(item=>item.id===current.session.ids[0]);
     assert(!(await page.locator('.story-text').first().innerText()).includes(first.english));
     const audio=page.waitForResponse(response=>response.url().includes('/assets/story/')&&response.url().includes('-p1.mp3'));
-    await page.getByRole('button',{name:'▶ Listen to this paragraph',exact:true}).click();assert.equal((await audio).status(),200);
+    await page.getByRole('button',{name:'Listen to this paragraph',exact:true}).click();assert.equal((await audio).status(),200);
     await page.locator('#answer').fill('draft');await saved(page,s=>s.session.draft==='draft');
     await page.reload();await page.locator('#answer').waitFor();assert.equal(await page.locator('#answer').inputValue(),'draft');
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
