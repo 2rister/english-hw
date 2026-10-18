@@ -30,21 +30,37 @@ async function seed(page,correct,total=25){
    const percent=Math.floor(correct*100/total);
    await page.getByRole('status').filter({hasText:percent+'%'}).waitFor();
    if(kind==='below'){
-    assert.equal(await page.locator('.finish-dashboard').count(),0);assert.equal(await page.locator('.finish-effects').count(),0);
-    await page.getByRole('button',{name:'Back to the practice plan →',exact:true}).click();
+    await page.locator('.finish-dashboard[data-block-passed="false"]').waitFor();
+    assert.equal(await page.getByRole('button',{name:'Continue',exact:true}).count(),0);
+    assert.equal(await page.getByRole('button',{name:'Try again',exact:true}).count(),0,'retry waits for the needle');
+    await page.getByRole('button',{name:'Try again',exact:true}).waitFor();
+    assert.equal(parseInt(await page.locator('.finish-score').innerText()),84);
+    assert.equal(await page.locator('.finish-effects').count(),0);
+    assert.equal(await page.locator('.finish-speed').count(),0);
+    await page.getByRole('button',{name:'Try again',exact:true}).click();await page.locator('#answer').waitFor();
+    assert.equal(await page.locator('h1').textContent(),story.title);
+    await page.getByRole('button',{name:'← Pause',exact:true}).click();
     assert(await page.getByRole('button',{name:/3 · Independent check/}).isDisabled());
-    await page.getByRole('button',{name:/1 · Story gaps/}).click();
-    await page.locator('#answer').waitFor();assert.equal(await page.locator('h1').textContent(),story.title);
    }else{
     await page.locator(`[data-score-percent="${percent}"]`).waitFor();
     if(reduce){assert.equal(await page.locator('.finish-effects').count(),0);assert.equal(parseInt(await page.locator('.finish-score').innerText()),percent);}
-    else await page.locator(`[data-celebration-effect="${kind==='exact85'?'confetti':kind}"]`).waitFor();
+    else {
+      await page.locator(`[data-celebration-effect="${kind==='exact85'?'confetti':kind}"]`).waitFor();
+      await page.locator('.finish-speed').waitFor();
+      assert.equal(await page.getByRole('button',{name:'Continue',exact:true}).count(),0,'Continue waits for the whole animation');
+      assert(await page.locator('.finish-dial').evaluate(el=>getComputedStyle(el).animationName==='finish-engine-vibration'));
+    }
     await page.waitForFunction(value=>parseInt(document.querySelector('.finish-score')?.textContent)===value,percent);
+    await page.waitForFunction(()=>!document.querySelector('.finish-dial.is-accelerating'));
     assert(await page.evaluate(()=>{
       const svg=document.querySelector('.finish-gauge'),circle=document.querySelector('.finish-pivot').getBoundingClientRect();
       const expected=new DOMPoint(160,166).matrixTransform(svg.getScreenCTM());
       return Math.abs(circle.x+circle.width/2-expected.x)<1&&Math.abs(circle.y+circle.height/2-expected.y)<1;
     }),'needle pivot must align with the actual centre of the SVG dial');
+    await page.getByRole('button',{name:'Continue',exact:true}).waitFor();
+    assert.equal(await page.locator('.finish-speed').count(),0);
+    assert.equal(await page.locator('.finish-effects').count(),0);
+    assert.equal(await page.locator('.finish-dial.is-accelerating').count(),0);
     for(const width of [320,375,402]){await page.setViewportSize({width,height:681});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
     await page.setViewportSize({width:402,height:681});await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));
     await page.screenshot({path:path.join(artifacts,`finish-${kind}.png`),fullPage:true});await page.locator('.finish-dashboard').screenshot({path:path.join(artifacts,`finish-card-${kind}.png`),scale:'css'});
@@ -57,14 +73,14 @@ async function seed(page,correct,total=25){
     await page.reload();await page.locator('.finish-dashboard').waitFor();
     assert.equal(parseInt(await page.locator('.finish-score').innerText()),percent);assert.equal(await page.locator('.finish-effects').count(),0,'reload must not replay a completion');
     if(kind==='confetti'){
-     await page.getByRole('button',{name:'Next story →',exact:true}).click();await page.locator('#answer').waitFor();
+     await page.getByRole('button',{name:'Continue',exact:true}).click();await page.locator('#answer').waitFor();
      assert.notEqual(await page.locator('h1').textContent(),story.title,'85% opens the next story');
     }
    }
    assert.deepEqual(errors,[]);await context.close();
   }
   console.log(process.env.VOCAB_CELEBRATION_BASE_URL?
-    'PASS PUBLIC iPhone 17 WebKit: 88% successful round, speedometer, effect, next-story unlock, responsive layout and no replay after reload; synthetic local fixtures only; all POSTs blocked.':
-    'PASS LOCAL iPhone 17 WebKit: all four effects; 88/100/exact85/84%; no celebration or unlock below 85%; correct next story; reduced motion; 320/375/402px; no replay after reload; synthetic IndexedDB fixtures, all external/POST traffic blocked.');
+    'PASS PUBLIC iPhone 17 WebKit: 88% successful round, needle vibration, bottom speed streaks, delayed Continue, next-story unlock, responsive layout and no replay after reload; synthetic local fixtures only; all POSTs blocked.':
+    'PASS LOCAL iPhone 17 WebKit: all four effects, vibration and bottom speed streaks; delayed Continue / Try again; 88/100/exact85/84%; no celebration or unlock below 85%; correct next story; reduced motion; 320/375/402px; no replay after reload; synthetic IndexedDB fixtures, all external/POST traffic blocked.');
  }finally{await browser.close();await server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

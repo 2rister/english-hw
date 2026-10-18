@@ -150,3 +150,12 @@
 .finish-wave .finish-particle { width:min(44vw,220px); height:min(44vw,220px); background:none; border:3px solid var(--particle-color); border-radius:50%; }
 .vocab-action:disabled { opacity:.55; cursor:default; }
 @media (prefers-reduced-motion:reduce) { .finish-effects { display:none; } }
+
+.finish-speed { position:absolute; inset:35% 0 0; overflow:hidden; pointer-events:none; background:radial-gradient(ellipse at 50% 120%,#65f7f026,transparent 65%); }
+.finish-speed i { position:absolute; bottom:-60px; width:2px; height:72px; border-radius:2px; transform-origin:50% 100%; }
+.finish-topline,.finish-score-detail,.finish-clear { position:relative; }
+.finish-dial.is-accelerating { animation:finish-engine-vibration 120ms linear infinite; }
+@keyframes finish-engine-vibration { 0%,100% {transform:translate(0,0)} 25% {transform:translate(.6px,-.4px)} 50% {transform:translate(-.5px,.4px)} 75% {transform:translate(.4px,.5px)} }
+@media(prefers-reduced-motion:reduce) { .finish-speed {display:none} .finish-dial.is-accelerating {animation:none} }
+
+.finish-dashboard[data-block-passed="false"] .finish-topline span:first-child,.finish-dashboard[data-block-passed="false"] .finish-clear {color:#ffb3d9}
