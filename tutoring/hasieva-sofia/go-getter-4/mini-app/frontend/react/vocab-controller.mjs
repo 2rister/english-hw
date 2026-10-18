@@ -1,4 +1,5 @@
 import { validateEvent, wordStats, pickRound, shuffle, openStore, createSync, createCommitter } from "./vocab-ports.mjs";
+import { chooseStory, repairWords } from './story-practice.mjs';
 function secureId(crypto = globalThis.crypto) {
   if (crypto?.randomUUID) return crypto.randomUUID();
   if (!crypto?.getRandomValues) throw Error("Secure answer IDs are unavailable. Reopen the app in Telegram.");
@@ -37,15 +38,18 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
   };
   player.addEventListener("ended", audioEnded);
   player.addEventListener("error", audioError);
-  function play(item, context = false, variant = 0) {
+  function playSource(source, key) {
     stopAudio();
-    player.src = context ? `assets/audio/${item.id}-c${variant + 1}.mp3` : item.audio;
-    playing = `${item.id}:${context}:${variant}`;
+    player.src = source;
+    playing = key;
     emit();
     player.play().catch(() => {
       playing = null;
       notify("Could not play the audio. Try again or check your connection.");
     });
+  }
+  function play(item, context = false, variant = 0) {
+    playSource(context ? `assets/audio/${item.id}-c${variant + 1}.mp3` : item.audio, `${item.id}:${context}:${variant}`);
   }
   function route() {
     stopAudio();
@@ -77,20 +81,25 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       emit();
     }
   }
-  async function start(mode, diagnostic = false) {
+  async function start(mode, diagnostic = false, options = {}) {
     if (saving || !state) return;
-    if (state.session && !confirmStart("Start a new exercise instead of the unfinished one? Your recorded answers will be kept.")) return;
+    if (state.session && state.session.index < state.session.ids.length && !confirmStart("Start a new exercise instead of the unfinished one? Your recorded answers will be kept.")) return;
     saving = true;
     emit();
     try {
-      let ids;
-      if (mode === "exam") ids = shuffle(bank.items.map((item) => item.id));
+      let ids, storyId;
+      if (options.story) ({ids, storyId} = chooseStory(bank, state.events));
+      else if (options.repair) {
+        const repairs = repairWords(state.events);
+        ids = repairs.length ? shuffle(repairs).slice(0,9) : pickRound(bank,state.events,mode);
+      }
+      else if (mode === "exam") ids = options.limit ? pickRound(bank,state.events,"listen",options.limit) : shuffle(bank.items.map((item) => item.id));
       else if (diagnostic) {
         const unseen = bank.items.filter((item) => wordStats(state.events, item.id).listen.attempts === 0);
         ids = unseen.length ? shuffle(unseen.slice(0, 9).map((item) => item.id)) : pickRound(bank, state.events, mode);
       } else ids = pickRound(bank, state.events, mode);
       await commit((next) => {
-        next.session = { id: secureId(), mode, ids, index: 0, feedback: null, hinted: false, pasted: false, draft: "", variant: next.day === 1 ? 0 : 1, results: [], retried: [], paperAnswers: {}, paperRequestIds: Object.fromEntries(ids.map((id) => [id, secureId()])) };
+        next.session = { id: secureId(), mode, storyId, ids, index: 0, feedback: null, hinted: false, pasted: false, draft: "", variant: next.day === 1 ? 0 : 1, results: [], retried: [], paperAnswers: {}, paperRequestIds: Object.fromEntries(ids.map((id) => [id, secureId()])) };
       });
       go("practice");
     } catch (cause) {
@@ -106,7 +115,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     if (!item) return;
     let event;
     try {
-      event = { ...validateEvent(bank, { requestId: secureId(), sessionId: session.id, itemId: item.id, version: bank.version, mode: session.mode, answer, hinted: session.hinted || session.pasted || pasted }), createdAt: (/* @__PURE__ */ new Date()).toISOString(), confirmed: false };
+      event = { ...validateEvent(bank, { requestId: secureId(), sessionId: session.id, itemId: item.id, version: bank.version, mode: session.mode, answer, hinted: Boolean(session.storyId) || session.hinted || session.pasted || pasted }), createdAt: (/* @__PURE__ */ new Date()).toISOString(), confirmed: false };
     } catch (cause) {
       notify(cause.message);
       return;
@@ -256,6 +265,8 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     dispose,
     go,
     play,
+    stop: () => { stopAudio(); emit(); },
+    playStory: (id, paragraph) => playSource(`assets/story/${id}${paragraph == null ? '' : '-p' + (paragraph + 1)}.mp3`, `story:${id}:${paragraph ?? 'all'}`),
     start,
     submitAnswer,
     paperSave,

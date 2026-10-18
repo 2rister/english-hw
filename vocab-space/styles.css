@@ -68,3 +68,14 @@
   .vocab-session-head { font-size:13px; }
   .vocab-exercise { padding-bottom:28px; }
 }
+
+.story-plan{margin:28px 0;padding:24px 0;border-block:2px solid var(--ink,#161713)}
+.story-plan h2{font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.05;margin:8px 0 14px}
+.story-text{font-size:1.05rem;line-height:2.1;margin:20px 0}
+.story-gap{display:inline-block;white-space:pre-wrap;font-family:monospace;font-weight:700;border-bottom:1px solid currentColor;padding:0 4px;max-width:100%;overflow-wrap:anywhere}
+.story-gap sup{font-family:inherit;font-size:.7em;margin-right:5px;opacity:.65}
+.story-gap.is-current{background:#d2eb78;outline:2px solid #20231b;border-radius:4px}
+.story-current{padding:12px 0;font-size:1rem}.story-current strong{font-family:monospace;white-space:pre-wrap}
+.story-overview{margin-top:24px;padding:16px 0;border-top:1px solid currentColor}.story-overview summary{font-weight:700;cursor:pointer;margin-bottom:12px}
+
+.vocab-shell .primary + .primary{margin-top:12px}

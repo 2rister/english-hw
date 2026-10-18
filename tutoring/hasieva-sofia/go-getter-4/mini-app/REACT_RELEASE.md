@@ -13,3 +13,13 @@ Public HTTP, browser rendering, native Telegram rendering and actual learner use
 The build copies the shared server word bank to `/vocab-space/unit2.json`; browsers use this public path because GitHub Pages may omit underscore-prefixed source directories. The public JSON is generated from the same 81-word definition used for server grading.
 
 English UI update: all Vocab labels, instructions, accessible names, confirmations, errors and spelling tips use English. Russian word meanings remain glossary content. IDs, storage keys, grading and server configuration are unchanged. Browser selectors were updated and the three-module browser suite and 15 React tests passed. The Vocab script cache version is react-20261018-en.
+
+## Original 25-gap story practice — 18 October 2026
+
+Four newly written stories each contain 25 numbered gaps, five per paragraph. Together they cover all 81 topic items, rather than a selected assessment word list. Assessment files, original passages, titles and variant orders are not included. All learner instructions are English.
+
+24 original synthetic English audio tracks are included: a whole-story recording and five paragraph tracks per story. Rebuild on macOS using `python3 build-story-audio.py` (Samantha at 145 words/minute, ffmpeg). The PDF is not an input to the audio builder.
+
+Story attempts reuse the existing exam-event contract with `hinted=true`: marks are delayed, the word list is locked and guided success never raises independent mastery. Wrong words remain in repair until an independent correct answer. Short independent checks select 25 distinct weak or unchecked words, then shuffle them; successful checks cover all 81 before routine review. Existing full dictation and other modes remain available. No database, Edge Function, identity, routing or learner-history migration is required.
+
+Verification: 21 unit tests passed; the existing three-module browser regression passed; the new story browser gate passed 51 synthetic events (draft reload, audio HTTP, mobile width, delayed results, dictionary lock, guided score, independent repair and 25-word check). All 24 MP3s decode. Native Telegram rendering and learner receipt are separate evidence.

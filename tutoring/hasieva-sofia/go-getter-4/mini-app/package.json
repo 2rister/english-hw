@@ -9,7 +9,8 @@
     "build": "node build-react.mjs",
     "test:react": "node --test frontend/react/*.test.mjs",
     "test:react-browser": "node backend/react.e2e.cjs",
-    "test:all": "npm run build && npm run test:react && node --test backend/*.test.cjs && npm run test:e2e && npm run test:react-browser"
+    "test:all": "npm run build && npm run test:react && node --test backend/*.test.cjs && npm run test:e2e && npm run test:react-browser && npm run test:story-browser",
+    "test:story-browser": "node backend/story.e2e.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
