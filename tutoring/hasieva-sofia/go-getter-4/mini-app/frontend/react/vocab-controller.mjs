@@ -10,7 +10,7 @@ function secureId(crypto = globalThis.crypto) {
 }
 function createVocabController({ tg, request = fetch, events = window, pageDocument = document, navigation = location, confirmStart = confirm, createPlayer = () => new Audio(), storeOpen = openStore, makeSync = createSync }) {
   let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, paperPending = 0;
-  let message = { text: "Открываем набор слов…", confirmed: false };
+  let message = { text: "Loading your word set…", confirmed: false };
   const listeners = /* @__PURE__ */ new Set(), player = createPlayer();
   let snapshot;
   function emit() {
@@ -33,7 +33,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
   };
   const audioError = () => {
     playing = null;
-    notify("Аудио не загрузилось. Ответ не засчитан — повтори воспроизведение.");
+    notify("Audio did not load. Your answer has not been counted. Please play it again.");
   };
   player.addEventListener("ended", audioEnded);
   player.addEventListener("error", audioError);
@@ -44,7 +44,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     emit();
     player.play().catch(() => {
       playing = null;
-      notify("Не удалось включить аудио. Нажми ещё раз или проверь соединение.");
+      notify("Could not play the audio. Try again or check your connection.");
     });
   }
   function route() {
@@ -60,7 +60,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     try {
       return await operation();
     } catch (cause) {
-      notify("Изменения не сохранены: " + cause.message);
+      notify("Changes not saved: " + cause.message);
     }
   }
   async function changeSession(change) {
@@ -71,7 +71,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       await commit((next) => change(next.session, next));
       route();
     } catch (cause) {
-      notify("Изменения не сохранены: " + cause.message);
+      notify("Changes not saved: " + cause.message);
     } finally {
       saving = false;
       emit();
@@ -79,7 +79,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
   }
   async function start(mode, diagnostic = false) {
     if (saving || !state) return;
-    if (state.session && !confirmStart("Начать новое упражнение вместо незавершённого? Уже записанные ответы сохранятся.")) return;
+    if (state.session && !confirmStart("Start a new exercise instead of the unfinished one? Your recorded answers will be kept.")) return;
     saving = true;
     emit();
     try {
@@ -94,7 +94,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       });
       go("practice");
     } catch (cause) {
-      notify("Упражнение не сохранено: " + cause.message);
+      notify("Exercise not saved: " + cause.message);
     } finally {
       saving = false;
       emit();
@@ -129,11 +129,11 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
           }
         }
       });
-      notify("Ответ сохранён на устройстве · ожидает подтверждения сервера.");
+      notify("Answer saved on this device · waiting for server confirmation.");
       route();
       void sync.flush();
     } catch (cause) {
-      notify("Ответ не сохранён: " + cause.message);
+      notify("Answer not saved: " + cause.message);
     } finally {
       saving = false;
       emit();
@@ -159,7 +159,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       });
       return true;
     } catch (cause) {
-      notify("Отметка не сохранена: " + cause.message);
+      notify("Check not saved: " + cause.message);
       return false;
     } finally {
       paperPending--;
@@ -179,7 +179,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       route();
       void sync.flush();
     } catch (cause) {
-      notify("Самопроверка не сохранена: " + cause.message);
+      notify("Self-check not saved: " + cause.message);
     } finally {
       saving = false;
       emit();
@@ -205,7 +205,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     tg?.onEvent?.("contentSafeAreaChanged", safeArea);
     try {
       const responses = await Promise.all([request("unit2.json"), request("config.json")]);
-      if (responses.some((response) => !response.ok)) throw Error("Не удалось загрузить набор слов. Обнови страницу.");
+      if (responses.some((response) => !response.ok)) throw Error("Could not load the word set. Please reload the page.");
       const [loadedBank, config] = await Promise.all(responses.map((response) => response.json()));
       if (disposed) return;
       bank = loadedBank;
