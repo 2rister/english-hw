@@ -20,13 +20,14 @@ async function seed(page,correct,total=25){
  try{
   const cases=[['confetti',0,22,25,false],['stars',.26,25,25,false],['fireworks',.51,22,25,false],['wave',.76,22,25,false],['reduced',0,22,25,true],['below',0,21,25,false],['exact85',0,17,20,false]];
   for(const [kind,random,correct,total,reduce] of process.env.VOCAB_CELEBRATION_BASE_URL?cases.slice(0,1):cases){
-   const context=await browser.newContext({...devices['iPhone 17'],reducedMotion:reduce?'reduce':'no-preference'});
-   await context.addInitScript(value=>{Math.random=()=>value;},random);
+   const context=await browser.newContext({...devices['iPhone 17'],reducedMotion:reduce?'reduce':'no-preference',...(kind==='confetti'?{recordVideo:{dir:artifacts,size:{width:402,height:681}}}:{})});
+   await context.addInitScript(value=>{const original=Math.random;window.restoreEffectRandom=()=>{Math.random=original;};Math.random=()=>value;},random);
    await context.route('**/*',route=>new URL(route.request().url()).origin===new URL(baseUrl).origin&&route.request().method()==='GET'?route.continue():route.abort());
+   const videoStarted=Date.now();let clipStart=0;
    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
    await page.goto(baseUrl+'/vocab-space/#unit-2');await page.getByRole('button',{name:/1 · Story gaps/}).waitFor();
    const fixture=await seed(page,correct,total);assert.equal(await page.locator('.finish-effects').count(),0);
-   await page.locator('#answer').fill(fixture.answer);await page.locator('#answer').press('Enter');
+   await page.locator('#answer').fill(fixture.answer);clipStart=(Date.now()-videoStarted)/1000;await page.locator('#answer').press('Enter');
    const percent=Math.floor(correct*100/total);
    await page.getByRole('status').filter({hasText:percent+'%'}).waitFor();
    if(kind==='below'){
@@ -46,6 +47,7 @@ async function seed(page,correct,total=25){
     if(reduce){assert.equal(await page.locator('.finish-effects').count(),0);assert.equal(parseInt(await page.locator('.finish-score').innerText()),percent);}
     else {
       await page.locator(`[data-celebration-effect="${kind==='exact85'?'confetti':kind}"]`).waitFor();
+      await page.evaluate(()=>window.restoreEffectRandom());
       await page.locator('.finish-speed').waitFor();
       assert.equal(await page.getByRole('button',{name:'Continue',exact:true}).count(),0,'Continue waits for the whole animation');
       assert(await page.locator('.finish-dial').evaluate(el=>getComputedStyle(el).animationName==='finish-engine-vibration'));
@@ -57,6 +59,14 @@ async function seed(page,correct,total=25){
       const expected=new DOMPoint(160,166).matrixTransform(svg.getScreenCTM());
       return Math.abs(circle.x+circle.width/2-expected.x)<1&&Math.abs(circle.y+circle.height/2-expected.y)<1;
     }),'needle pivot must align with the actual centre of the SVG dial');
+    if(kind==='confetti'){
+      const canvas=page.locator('.finish-confetti-canvas');await canvas.waitFor();
+      const box=await canvas.boundingBox();assert.equal(box.x,0);assert.equal(box.y,0);assert.equal(Math.round(box.width),402);assert.equal(Math.round(box.height),681);
+      await page.waitForTimeout(800);
+      assert.equal(await page.getByRole('button',{name:'Continue',exact:true}).count(),0,'Continue waits for canvas particles to finish');
+      await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));
+      await page.screenshot({path:path.join(artifacts,'confetti-rain-mobile.png'),scale:'css'});
+    }
     await page.getByRole('button',{name:'Continue',exact:true}).waitFor();
     assert.equal(await page.locator('.finish-speed').count(),0);
     assert.equal(await page.locator('.finish-effects').count(),0);
@@ -77,10 +87,11 @@ async function seed(page,correct,total=25){
      assert.notEqual(await page.locator('h1').textContent(),story.title,'85% opens the next story');
     }
    }
-   assert.deepEqual(errors,[]);await context.close();
+   assert.deepEqual(errors,[]);const video=page.video();await context.close();
+   if(video){fs.copyFileSync(await video.path(),path.join(artifacts,'confetti-rain-recording.webm'));fs.writeFileSync(path.join(artifacts,'confetti-rain-clip.json'),JSON.stringify({start:Math.max(0,clipStart-.1)}));}
   }
   console.log(process.env.VOCAB_CELEBRATION_BASE_URL?
-    'PASS PUBLIC iPhone 17 WebKit: 88% successful round, needle vibration, bottom speed streaks, delayed Continue, next-story unlock, responsive layout and no replay after reload; synthetic local fixtures only; all POSTs blocked.':
-    'PASS LOCAL iPhone 17 WebKit: all four effects, vibration and bottom speed streaks; delayed Continue / Try again; 88/100/exact85/84%; no celebration or unlock below 85%; correct next story; reduced motion; 320/375/402px; no replay after reload; synthetic IndexedDB fixtures, all external/POST traffic blocked.');
+    'PASS PUBLIC iPhone 17 WebKit: 88% successful round, needle vibration, top-edge canvas confetti, delayed Continue, next-story unlock, responsive layout and no replay after reload; synthetic local fixtures only; all POSTs blocked.':
+    'PASS LOCAL iPhone 17 WebKit: all four effects, vibration, bottom speed streaks and full-screen top-edge canvas confetti; delayed Continue / Try again; 88/100/exact85/84%; no celebration or unlock below 85%; correct next story; reduced motion; 320/375/402px; no replay after reload; synthetic IndexedDB fixtures, all external/POST traffic blocked.');
  }finally{await browser.close();await server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,6 +1,7 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform} from 'motion/react';
+import ConfettiRain from './ConfettiRain.jsx';
 import {randomEffect} from './block-result.mjs';
 
 let lastEffect;
@@ -11,19 +12,20 @@ const point = (percent, radius) => {
   return [160 + Math.sin(angle) * radius, 166 - Math.cos(angle) * radius];
 };
 
-function FinishEffect({kind}) {
+function FinishEffect({kind,onComplete}) {
+  if (kind==='confetti') return <ConfettiRain onComplete={onComplete}/>;
   const wave = kind === 'wave', count = wave ? 4 : 32;
   return createPortal(<div className={'finish-effects finish-'+kind} aria-hidden="true" data-celebration-effect={kind}>
     {Array.from({length:count}, (_,i) => {
       const angle = i * 2.39996, spread = 18 + (i % 8) * 3;
       const x = Math.cos(angle) * spread, y = Math.sin(angle) * spread;
-      const firework = kind === 'fireworks', confetti = kind === 'confetti';
+      const firework = kind === 'fireworks';
       const origin = firework ? (i % 2 ? '28%' : '72%') : '50%';
-      const start = wave ? 'translate(-50%, -50%) scale(0.95)' : confetti ? 'translate(-50%, 35vh) rotate(0deg)' : 'translate(-50%, -50%) scale(0.95)';
-      const end = wave ? `translate(-50%, -50%) scale(${2.5+i*.3})` : confetti ? `translate(${x}vw, 48vh) rotate(${i*47}deg)` : `translate(${x}vw, ${y}vh) rotate(${i*29}deg)`;
+      const start = 'translate(-50%, -50%) scale(0.95)';
+      const end = wave ? `translate(-50%, -50%) scale(${2.5+i*.3})` : `translate(${x}vw, ${y}vh) rotate(${i*29}deg)`;
       return <motion.i key={i} className="finish-particle" style={{left:origin, '--particle-color':i%3===0?'#ff52ba':i%3===1?'#65f7f0':'#ffe898'}}
-        initial={{opacity:0,transform:start}} animate={{opacity:[0,1,0],transform:confetti?[start,`translate(${x*.8}vw, -30vh) rotate(${i*23}deg)`,end]:[start,end]}}
-        transition={{delay:1.1+(i%(wave?4:6))*.07,duration:wave?1.4:1.8,times:confetti?[0,.4,1]:undefined,ease:'linear'}}>
+        initial={{opacity:0,transform:start}} animate={{opacity:[0,1,0],transform:[start,end]}}
+        transition={{delay:1.1+(i%(wave?4:6))*.07,duration:wave?1.4:1.8,ease:'linear'}}>
         {kind==='stars'?'✦':null}
       </motion.i>;
     })}
@@ -33,6 +35,7 @@ function FinishEffect({kind}) {
 export default function SuccessCelebration({outcome, label, sessionId, completedNow, onComplete}) {
   const reduce = useReducedMotion(), [effect,setEffect] = useState(null), [accelerating,setAccelerating] = useState(false);
   const jitter = useMotionValue(0);
+  const finishRound = useCallback(() => {setEffect(null);onComplete(true);}, [onComplete]);
   const value = useMotionValue(completedNow===sessionId&&!reduce&&!celebrated.has(sessionId)?0:outcome.percent), count = useTransform(value, latest => Math.floor(latest));
   const needle = useTransform([value,jitter], ([latest,vibration]) => {
     const shown=Math.max(0,Math.min(100,latest+vibration));
@@ -52,10 +55,10 @@ export default function SuccessCelebration({outcome, label, sessionId, completed
     const playback = animate(value, outcome.percent, {duration:1.2,ease});
     const vibration = animate(jitter, [0,-0.35,0.45,-0.55,0.4,-0.25,0], {duration:0.15,repeat:7,ease:'linear'});
     const settled = setTimeout(() => { setAccelerating(false);jitter.set(0); }, 1200);
-    const timer = setTimeout(() => { setEffect(null);onComplete(true); }, outcome.passed?3300:1400);
+    const timer = outcome.passed&&lastEffect==='confetti'?null:setTimeout(finishRound, outcome.passed?3300:1400);
     return () => { playback.stop();vibration.stop();clearTimeout(settled);clearTimeout(timer);setAccelerating(false);setEffect(null);jitter.set(0);value.set(outcome.percent); };
-  }, [completedNow, sessionId, outcome.percent, outcome.passed, reduce, value, jitter, onComplete]);
-  return <>{effect&&!reduce&&<FinishEffect kind={effect}/>}<section className="finish-dashboard" data-block-passed={String(outcome.passed)} data-score-percent={outcome.percent}>
+  }, [completedNow, sessionId, outcome.percent, outcome.passed, reduce, value, jitter, onComplete, finishRound]);
+  return <>{effect&&!reduce&&<FinishEffect kind={effect} onComplete={finishRound}/>}<section className="finish-dashboard" data-block-passed={String(outcome.passed)} data-score-percent={outcome.percent}>
     <AnimatePresence>{accelerating&&!reduce&&<motion.div className="finish-speed" aria-hidden="true" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18,ease}}>
       {Array.from({length:12},(_,i)=>{const angle=(i-5.5)*5;return <motion.i key={i} style={{left:`${5+i*8}%`,background:i%3===0?'#ff52ba':'#65f7f0'}}
         initial={{opacity:0,transform:`translateY(80px) rotate(${angle}deg) scaleY(0.6)`}}
