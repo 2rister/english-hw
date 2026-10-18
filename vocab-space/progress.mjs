@@ -15,7 +15,7 @@ export async function openStore(owner) {
       let value;
       request.onsuccess = () => { value = request.result; };
       tx.oncomplete = () => resolve(value);
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error || request.error || new Error('Progress could not be saved on this device.'));
       tx.onabort = () => reject(tx.error || new Error('Progress could not be saved on this device.'));
     });
   }
@@ -31,7 +31,7 @@ export async function openStore(owner) {
           profiles.put(merged, owner);
         };
         tx.oncomplete = () => resolve(merged);
-        tx.onerror = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error || request.error || new Error('Progress could not be saved on this device.'));
         tx.onabort = () => reject(tx.error || new Error('Progress could not be saved on this device.'));
       });
     },

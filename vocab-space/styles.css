@@ -5,13 +5,13 @@
 .vocab-save[data-confirmed="true"] { color:#0d5d40; }
 .vocab-eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.15em; font-weight:800; margin:0 0 14px; }
 .vocab-hero { position:relative; padding:28px 0 34px; border-bottom:2px solid var(--ink); }
-.vocab-hero h1 { font-size:clamp(44px,8vw,82px); line-height:.97; letter-spacing:-.065em; margin:0 0 20px; max-width:760px; }
+.vocab-hero h1 { font-size:clamp(44px,8vw,82px); line-height:.97; letter-spacing:-.03em; margin:0 0 20px; max-width:760px; }
 .vocab-hero h1 span { display:block; color:#526a1e; }
 .vocab-intro { max-width:590px; font-size:17px; line-height:1.6; margin:0; }
 .vocab-orbit { position:absolute; right:0; top:24px; border:1px solid var(--ink); border-radius:50%; height:112px; width:112px; display:grid; place-content:center; transform:rotate(12deg); font-size:36px; background:var(--space-accent); }
 .vocab-orbit small { display:block; font-size:10px; text-align:center; letter-spacing:.1em; }
 .vocab-unit { display:grid; grid-template-columns:80px 1fr auto; align-items:center; gap:24px; margin-top:28px; border:1px solid var(--ink); border-radius:18px; padding:26px; text-align:left; background:#fffdf7; width:100%; color:var(--ink); }
-.vocab-unit-number { font-size:50px; font-weight:800; letter-spacing:-.06em; }
+.vocab-unit-number { font-size:50px; font-weight:800; letter-spacing:-.03em; }
 .vocab-unit h2 { font-size:28px; margin:4px 0 10px; }
 .vocab-unit p { margin:0; line-height:1.5; }
 .vocab-cta { background:var(--space-accent); padding:12px 17px; border-radius:40px; font-weight:800; white-space:nowrap; }
@@ -31,7 +31,7 @@
 .vocab-note { font-size:13px; line-height:1.7; color:#505047; max-width:750px; }
 .vocab-session-head { display:flex; align-items:center; justify-content:space-between; gap:15px; margin:12px 0 24px; }
 .vocab-progress { height:6px; width:100%; background:#d6d5ca; border-radius:6px; overflow:hidden; margin-bottom:26px; }
-.vocab-progress span { display:block; height:100%; background:#526a1e; }
+.vocab-progress span { display:block; height:100%; width:100%; transform-origin:left center; background:#526a1e; }
 .vocab-exercise { max-width:710px; margin:0 auto; }
 .vocab-exercise h1 { font-size:clamp(27px,5vw,40px); margin:10px 0 16px; line-height:1.16; letter-spacing:-.04em; }
 .vocab-play { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:22px; margin:20px 0; border:1px solid var(--ink); border-radius:14px; background:var(--space-accent); color:var(--ink); font-size:20px; font-weight:800; }
@@ -40,7 +40,7 @@
 .vocab-exercise .answer-input { width:100%; font-size:22px; min-height:58px; box-sizing:border-box; }
 .vocab-exercise .primary { margin:16px 0; min-height:50px; }
 .vocab-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
-.vocab-feedback { margin:20px 0; padding:18px; border-left:4px solid #526a1e; background:#e8edd9; border-radius:4px; line-height:1.65; }
+.vocab-feedback { margin:20px 0; padding:18px; border:1px solid #526a1e; background:#e8edd9; border-radius:4px; line-height:1.65; }
 .vocab-feedback.is-wrong { border-color:#a34a2f; background:#f7e8df; }
 .vocab-feedback strong { display:block; font-size:21px; }
 .vocab-mask { font-family:monospace; font-size:29px; letter-spacing:.12em; overflow-wrap:anywhere; }
@@ -79,3 +79,52 @@
 .story-overview{margin-top:24px;padding:16px 0;border-top:1px solid currentColor}.story-overview summary{font-weight:700;cursor:pointer;margin-bottom:12px}
 
 .vocab-shell .primary + .primary{margin-top:12px}
+
+/* Operate-first refinement: the recommended task comes before optional detail. */
+.vocab-page{--ease-out:cubic-bezier(.23,1,.32,1);caret-color:#526a1e}
+.vocab-page ::selection{background:#d2eb78;color:#161713}
+.vocab-page :focus-visible{outline:3px solid #526a1e;outline-offset:3px}
+.vocab-page .back-button,.vocab-home-link{min-height:44px}
+.vocab-home-link{display:inline-flex;align-items:center}
+.vocab-hero.is-compact{padding:8px 0 12px;border-bottom:0}
+.vocab-hero.is-compact h1{font-size:clamp(34px,6vw,54px);line-height:1.05;margin-bottom:10px;letter-spacing:-.03em;text-wrap:balance}
+.vocab-hero.is-compact .vocab-intro{font-size:15px;line-height:1.5}
+.vocab-hero h1,.vocab-exercise h1{text-wrap:balance}
+.vocab-note,.vocab-intro,.story-instruction,.story-plan-copy{text-wrap:pretty}
+.story-plan{margin:12px 0 24px;padding:18px 0 22px;border-top:0;border-bottom:2px solid var(--ink)}
+.story-plan h2{font-size:clamp(25px,5vw,34px);margin:0 0 10px;letter-spacing:-.025em}
+.story-plan-copy{font-size:15px;line-height:1.6;margin:0}
+.story-plan .vocab-actions{margin:16px 0;gap:10px}
+.story-plan .vocab-action{padding:18px 20px;min-height:92px}
+.vocab-reveal{border-bottom:1px solid var(--line,#cbc8bd);margin:12px 0}
+.reveal-trigger{display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;width:100%;min-height:52px;padding:14px 2px;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:750;cursor:pointer}
+.reveal-trigger svg{flex:none;transform-origin:center}
+.reveal-content{overflow:hidden}
+.reveal-inner{padding:0 2px 16px}
+.vocab-reveal .vocab-stats{margin:4px 0 16px}
+.vocab-reveal .vocab-days{margin-top:4px}
+.story-instruction{font-size:14px;line-height:1.6;color:#505047;margin:10px 0 16px}
+.story-overview{margin-top:24px;padding:0;border-top:1px solid var(--line,#cbc8bd)}
+.story-text{margin:16px 0;font-size:1.05rem;line-height:2}
+.story-current{padding:8px 0;margin:12px 0 4px}
+.answer-workspace .vocab-play{margin:8px 0 14px;min-height:54px;padding:14px 18px;font-size:17px}
+.vocab-play{cursor:pointer;touch-action:manipulation;transition:background-color .12s var(--ease-out),color .12s var(--ease-out)}
+.vocab-play svg{flex:none}
+.vocab-play.is-active{background:var(--ink);color:var(--paper,#f3f0e8)}
+.audio-stop-near{min-height:48px;margin-bottom:8px}
+.vocab-exercise form .primary{touch-action:manipulation}
+.vocab-results{padding:22px 0}
+.result-title{font-size:clamp(30px,6vw,46px);line-height:1.12;letter-spacing:-.03em;margin:0 0 20px;text-wrap:balance}
+.result-score{margin:0 0 20px;letter-spacing:-.025em;line-height:1.05}
+.result-score>span{display:block;font-size:clamp(60px,13vw,88px);font-variant-numeric:tabular-nums}
+.result-score>small{display:block;font-size:clamp(20px,4vw,28px);line-height:1.25;letter-spacing:-.02em;margin-top:14px;max-width:28ch;text-wrap:balance}
+.result-section-title{font-size:23px;margin:28px 0 14px;letter-spacing:-.02em}
+.vocab-result-list{list-style:none;padding:0;margin:0 0 24px}
+.vocab-result-list li{border-bottom:1px solid var(--line,#cbc8bd);padding:14px 0}
+.vocab-result-list li strong,.vocab-result-list li span{display:block}
+.vocab-result-list li p{font-size:14px;line-height:1.6;margin:8px 0 0;color:#505047}
+.result-actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}
+.result-actions button{min-height:52px;max-width:100%}
+@media(hover:hover) and (pointer:fine){.vocab-play:hover{background:#d7ec92}.vocab-play.is-active:hover{background:#30332a}.reveal-trigger:hover{color:#526a1e}}
+@media(max-width:620px){.result-actions{display:grid;grid-template-columns:1fr}.result-actions button{width:100%}.vocab-hero.is-compact h1{font-size:38px}.vocab-results{padding-top:16px}}
+@media(prefers-reduced-motion:reduce){.vocab-page *{scroll-behavior:auto!important}.vocab-play{transition:none}}
