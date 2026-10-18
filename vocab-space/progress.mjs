@@ -76,7 +76,7 @@ export function createSync({ endpoint, initData, bank, state, commit, notify, re
   }
   async function flush() {
     if (!endpoint || !initData) {
-      notify(endpoint ? 'Просмотр: результаты только на этом устройстве.' : 'Сервер ещё не подключён · результаты сохранены на устройстве.', false);
+      notify(endpoint ? 'Preview: results stay on this device only.' : 'Server not connected · results saved on this device.', false);
       return;
     }
     const loaded = await call('load');
@@ -87,12 +87,12 @@ export function createSync({ endpoint, initData, bank, state, commit, notify, re
       const result = await call('attempt', event);
       await commit(next => { next.events = mergeEvents([result.event], next.events.filter(entry => entry.requestId !== event.requestId)); });
     }
-    notify('Прогресс подтверждён сервером.', true);
+    notify('Progress confirmed by the server.', true);
   }
   return {
     flush() {
       if (!active) active = flush().catch(error => {
-        notify('Ожидает отправки: ' + error.message, false);
+        notify('Waiting to send: ' + error.message, false);
       }).finally(() => { active = null; });
       return active;
     },

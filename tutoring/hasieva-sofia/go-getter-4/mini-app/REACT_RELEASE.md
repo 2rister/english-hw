@@ -11,3 +11,5 @@ Verified before release: React logic 15 tests; browser catalog/startup and all t
 Public HTTP, browser rendering, native Telegram rendering and actual learner use are separate checks. A successful synthetic server test does not establish that Sonya opened or completed an exercise. No messages were sent to her.
 
 The build copies the shared server word bank to `/vocab-space/unit2.json`; browsers use this public path because GitHub Pages may omit underscore-prefixed source directories. The public JSON is generated from the same 81-word definition used for server grading.
+
+English UI update: all Vocab labels, instructions, accessible names, confirmations, errors and spelling tips use English. Russian word meanings remain glossary content. IDs, storage keys, grading and server configuration are unchanged. Browser selectors were updated and the three-module browser suite and 15 React tests passed. The Vocab script cache version is react-20261018-en.
