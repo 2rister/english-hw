@@ -1,6 +1,8 @@
+import SuccessCelebration from "./SuccessCelebration.jsx";
+import {roundOutcome} from "./block-result.mjs";
 import Answer from "./VocabAnswer.jsx";
 import {ActionButton, AudioControl, Reveal, ResultEntrance, MotionConfig} from "./VocabMotion.jsx";
-import { stories, storyParts } from "./story-practice.mjs";
+import { stories, storyParts, storyProgress } from "./story-practice.mjs";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createVocabController } from "./vocab-controller.mjs";
@@ -22,6 +24,7 @@ function Library({ controller: c }) {
   return <><Head title="Words that stay." copy="Listen. Recall. Write. Your space for words that stay with you."><div className="vocab-orbit">Aa</div></Head><button type="button" className="vocab-unit" onClick={() => c.go("unit-2")}><span className="vocab-unit-number">02</span><div><p className="vocab-eyebrow">GO GETTER 4 / UNIT 2</p><h2>Home &amp; Housework</h2><p>81 words and phrases · 3 days of practice · dictation and new contexts</p></div><span className="vocab-cta">Open →</span></button><p className="vocab-note">Models help you learn. Independent answers show what you remember.</p></>;
 }
 function Home({ controller:c, snapshot:s }) {
+  const rounds=storyProgress(s.bank,s.state.events),independentUnlocked=rounds.some(round=>round.passed);
   const stats = summary(s.bank, s.state.events), options = [["Listen and write", stats.checked < 81 ? "Try the next unchecked words. No translation before you answer." : "A short mixed round, starting with difficult words.", () => c.start("listen", true)], ["Words in context", "Listen to new sentences and write the complete missing word or phrase.", () => c.start("context")], ["My difficult words", stats.weak ? `${stats.weak} words were incorrect in your latest independent attempt.` : "Practise the spelling. Remember every word in a phrase.", () => c.start("listen")], ["Build the spelling", "Complete the missing letters. This is supported practice, not an independent check.", () => c.start("letters")], ["Dictation · all 81", "Random order. No hints. Check your answers after the final word.", () => c.start("exam")], ["Paper dictation", "Take a blank sheet. Listen to 9 words or phrases, then check your own work.", () => c.start("paper")]];
   return <><button className="back-button" onClick={()=>c.go("")}>← All sets</button>
     <Head title="Home & Housework" copy="Practise spelling, one short round at a time." compact />
@@ -30,9 +33,9 @@ function Home({ controller:c, snapshot:s }) {
       <h2 id="storyPlanTitle">25-word story practice</h2>
       <p className="story-plan-copy">Listen and fill 25 gaps. First letters help you learn.</p>
       <div className="vocab-actions">
-        <ActionButton className="vocab-action is-main" disabled={s.saving} onClick={()=>c.start("exam",false,{story:true})}><strong>1 · Story gaps · 25</strong><span>A new story, with answers checked at the end.</span></ActionButton>
+        <ActionButton className="vocab-action is-main" disabled={s.saving} onClick={()=>c.start("exam",false,{story:true})}><strong>1 · Story gaps · 25</strong><span>{rounds.filter(round=>round.passed).length} / {rounds.length} stories cleared · reach 85% to open the next.</span></ActionButton>
         <ActionButton className="vocab-action" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}><strong>2 · Repair my spellings</strong><span>Recall difficult words without a model.</span></ActionButton>
-        <ActionButton className="vocab-action" disabled={s.saving} onClick={()=>c.start("exam",false,{limit:25})}><strong>3 · Independent check · 25</strong><span>No first letters, hints or word list.</span></ActionButton>
+        <ActionButton className="vocab-action" disabled={s.saving||!independentUnlocked} onClick={()=>c.start("exam",false,{limit:25})}><strong>3 · Independent check · 25</strong><span>{independentUnlocked?"No first letters, hints or word list.":"Locked · reach 85% in a story first."}</span></ActionButton>
       </div>
       <p className="vocab-note">Story → repair → a 10–20 minute break → independent check. Aim for 25/25 twice, with a break between rounds.</p>
     </section>
@@ -86,16 +89,17 @@ function PaperRow({ controller: c, id, item, initial }) {
   }} /><span>{item.english}</span></label>;
 }
 function Results({ controller:c, snapshot:s }) {
-  const session=s.state.session,independent=session.results.filter(event=>!event.hinted),scored=session.storyId?session.results:independent;
-  const correct=scored.filter(event=>event.correct).length,errors=session.results.filter(event=>event.correct===false);
+  const session=s.state.session,outcome=roundOutcome(session),correct=outcome.correct;
+  const errors=session.results.filter(event=>event.correct===false);
   const paper=session.mode==="paper",selfCheck=paper&&!session.paperSaved;
-  const scoreLabel=paper?"Self-check saved.":`${correct} / ${scored.length} ${session.storyId?"answers correct with first-letter clues":"independent answers correct"}`;
+  const scoreLabel=paper?"Self-check saved.":`${correct} / ${outcome.total} ${session.storyId?"answers correct with first-letter clues":outcome.supported?"answers correct with support":"independent answers correct"}`;
   return <ResultEntrance>{selfCheck?<><h1 className="result-title">Now check your paper.</h1><p className="vocab-intro">Tick only answers with no mistakes, including every word in a phrase.</p><div>{session.ids.map(id=>{const item=s.bank.items.find(word=>word.id===id);return <PaperRow key={id} controller={c} id={id} item={item} initial={Boolean(session.paperAnswers[id])}/>;})}</div><p className="vocab-note">This is your own self-check, separate from verified spelling.</p><ActionButton className="primary" disabled={s.saving||s.paperPending>0} onClick={()=>c.paperSave()}>Save self-check</ActionButton></>:<>
-    <h1 className={paper?"result-title":"result-score"} aria-label={scoreLabel}>{paper?scoreLabel:<><span>{correct} / {scored.length}</span><small>{session.storyId?"answers correct with first-letter clues":"independent answers correct"}</small></>}</h1>
+    {outcome.passed?<SuccessCelebration key={session.id} outcome={outcome} label={scoreLabel} sessionId={session.id} completedNow={s.completedNow}/>:<h1 className={paper?"result-title":"result-score"} aria-label={scoreLabel}>{paper?scoreLabel:<><span>{correct} / {outcome.total}</span><small>{session.storyId?"answers correct with first-letter clues":outcome.supported?"answers correct with support":"independent answers correct"}</small></>}</h1>}
+    {!paper&&<p className="block-outcome" role="status">{outcome.passed?`${outcome.percent}% · Block cleared.${session.storyId?" The next story and independent check are unlocked.":""}`:`${outcome.percent}% · Reach 85% to clear this block. Repair your mistakes, then try it again.`}</p>}
     <p className="vocab-intro">{paper?"Your paper self-check has been recorded.":session.storyId?"First-letter clues were provided. Repair mistakes without a model, then check independently after a break.":"Your independent answers for this round. Review mistakes after a break."}</p>
     {errors.length>0&&<><h2 className="result-section-title">Words to revisit</h2><ul className="vocab-result-list">{errors.map(event=>{const item=s.bank.items.find(word=>word.id===event.itemId);return <li key={event.requestId}><strong>{item.english}</strong><span>Your answer: {event.answer}</span><p>{item.tip}</p></li>;})}</ul></>}
-    <div className="result-actions">{errors.length>0&&<ActionButton className="primary" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}>Repair these spellings →</ActionButton>}
-      <ActionButton className={errors.length>0?"secondary":"primary"} disabled={s.saving} onClick={()=>c.clear("unit-2")}>Back to the practice plan →</ActionButton></div>
+    <div className="result-actions">{!paper&&<ActionButton className="primary" disabled={s.saving} onClick={()=>outcome.passed?c.start(session.mode,false,session.storyId?{story:true}:session.mode==="exam"&&outcome.total===25?{limit:25}:{}):c.start(session.mode,false,{retry:true})}>{outcome.passed?(session.storyId?"Next story →":"Another round →"):"Try this block again →"}</ActionButton>}{errors.length>0&&<ActionButton className="secondary" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}>Repair these spellings →</ActionButton>}
+      <ActionButton className={paper?"primary":"secondary"} disabled={s.saving} onClick={()=>c.clear("unit-2")}>Back to the practice plan →</ActionButton></div>
     {session.mode==="exam"&&<p className="vocab-note">This round measures practice, not a guaranteed score on paper.</p>}
   </>}</ResultEntrance>;
 }

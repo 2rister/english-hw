@@ -39,7 +39,7 @@ async function saved(page,predicate){for(let n=0;n<100;n++){const current=await 
       await saved(page,s=>s.session.index===n+1);
       if(n<24)assert.equal(await page.getByText(first.english,{exact:true}).count(),0);
     }
-    await page.getByRole('heading',{name:'24 / 25 answers correct with first-letter clues',exact:true}).waitFor();
+    await page.getByRole('heading',{name:'24 / 25 answers correct with first-letter clues',exact:true}).waitFor();await page.waitForFunction(()=>parseInt(document.querySelector('.finish-score')?.textContent)===96);
     current=await state(page);assert(current.events.every(event=>event.hinted===true));assert.equal(current.events.length,25);
     await page.screenshot({path:path.join(artifacts,'vocab-story-results.png'),fullPage:true});
     await page.getByRole('button',{name:'Repair these spellings →',exact:true}).click();await page.locator('#answer').waitFor();
