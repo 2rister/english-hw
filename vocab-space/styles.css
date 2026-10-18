@@ -1,0 +1,70 @@
+.vocab-page { --space-accent:#c9e667; background:var(--paper,#f3f0e8); }
+.vocab-shell { max-width:1000px; }
+.vocab-home-link { color:var(--ink); font-size:13px; text-decoration:none; font-weight:700; }
+.vocab-save { min-height:34px; margin:0; padding:9px 20px; border-bottom:1px solid var(--line,#d8d5cc); font-size:12px; color:#54544b; }
+.vocab-save[data-confirmed="true"] { color:#0d5d40; }
+.vocab-eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.15em; font-weight:800; margin:0 0 14px; }
+.vocab-hero { position:relative; padding:28px 0 34px; border-bottom:2px solid var(--ink); }
+.vocab-hero h1 { font-size:clamp(44px,8vw,82px); line-height:.97; letter-spacing:-.065em; margin:0 0 20px; max-width:760px; }
+.vocab-hero h1 span { display:block; color:#526a1e; }
+.vocab-intro { max-width:590px; font-size:17px; line-height:1.6; margin:0; }
+.vocab-orbit { position:absolute; right:0; top:24px; border:1px solid var(--ink); border-radius:50%; height:112px; width:112px; display:grid; place-content:center; transform:rotate(12deg); font-size:36px; background:var(--space-accent); }
+.vocab-orbit small { display:block; font-size:10px; text-align:center; letter-spacing:.1em; }
+.vocab-unit { display:grid; grid-template-columns:80px 1fr auto; align-items:center; gap:24px; margin-top:28px; border:1px solid var(--ink); border-radius:18px; padding:26px; text-align:left; background:#fffdf7; width:100%; color:var(--ink); }
+.vocab-unit-number { font-size:50px; font-weight:800; letter-spacing:-.06em; }
+.vocab-unit h2 { font-size:28px; margin:4px 0 10px; }
+.vocab-unit p { margin:0; line-height:1.5; }
+.vocab-cta { background:var(--space-accent); padding:12px 17px; border-radius:40px; font-weight:800; white-space:nowrap; }
+.vocab-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:24px 0; }
+.vocab-stat { padding:17px 14px; border:1px solid var(--line,#cbc8bd); border-radius:12px; }
+.vocab-stat strong { display:block; font-size:30px; margin-bottom:7px; letter-spacing:-.04em; }
+.vocab-stat span { font-size:12px; line-height:1.4; display:block; }
+.vocab-days { display:flex; gap:8px; margin:24px 0 18px; flex-wrap:wrap; }
+.vocab-days button { border:1px solid var(--ink); background:transparent; padding:11px 16px; border-radius:30px; color:var(--ink); font-size:14px; }
+.vocab-days button[aria-pressed="true"] { background:var(--ink); color:white; }
+.vocab-day-note { font-size:15px; line-height:1.65; max-width:730px; }
+.vocab-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:22px 0; }
+.vocab-action { display:flex; flex-direction:column; gap:8px; text-align:left; padding:22px; background:#fffdf7; border:1px solid var(--ink); border-radius:14px; color:var(--ink); }
+.vocab-action strong { font-size:20px; letter-spacing:-.03em; }
+.vocab-action span { font-size:13px; line-height:1.55; color:#505047; }
+.vocab-action.is-main { background:var(--space-accent); }
+.vocab-note { font-size:13px; line-height:1.7; color:#505047; max-width:750px; }
+.vocab-session-head { display:flex; align-items:center; justify-content:space-between; gap:15px; margin:12px 0 24px; }
+.vocab-progress { height:6px; width:100%; background:#d6d5ca; border-radius:6px; overflow:hidden; margin-bottom:26px; }
+.vocab-progress span { display:block; height:100%; background:#526a1e; }
+.vocab-exercise { max-width:710px; margin:0 auto; }
+.vocab-exercise h1 { font-size:clamp(27px,5vw,40px); margin:10px 0 16px; line-height:1.16; letter-spacing:-.04em; }
+.vocab-play { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:22px; margin:20px 0; border:1px solid var(--ink); border-radius:14px; background:var(--space-accent); color:var(--ink); font-size:20px; font-weight:800; }
+.vocab-context { font-size:24px; line-height:1.5; margin:22px 0; }
+.vocab-input-label { display:block; font-size:14px; font-weight:700; margin:18px 0 10px; }
+.vocab-exercise .answer-input { width:100%; font-size:22px; min-height:58px; box-sizing:border-box; }
+.vocab-exercise .primary { margin:16px 0; min-height:50px; }
+.vocab-toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.vocab-feedback { margin:20px 0; padding:18px; border-left:4px solid #526a1e; background:#e8edd9; border-radius:4px; line-height:1.65; }
+.vocab-feedback.is-wrong { border-color:#a34a2f; background:#f7e8df; }
+.vocab-feedback strong { display:block; font-size:21px; }
+.vocab-mask { font-family:monospace; font-size:29px; letter-spacing:.12em; overflow-wrap:anywhere; }
+.vocab-words { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+.vocab-word { border:1px solid var(--line,#cbc8bd); border-radius:12px; background:#fffdf7; padding:18px; }
+.vocab-word strong { display:block; font-size:21px; margin:0 0 8px; }
+.vocab-word p { line-height:1.5; margin:8px 0; font-size:14px; }
+.vocab-word small { display:block; color:#56584e; margin-top:10px; }
+.vocab-word button { margin-top:10px; }
+.vocab-error { color:#8b2d1b; line-height:1.6; }
+.vocab-paper-row { display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid #d6d5ca; }
+.vocab-paper-row input { min-width:22px; height:22px; }
+.vocab-result-list { line-height:1.8; padding-left:24px; }
+.vocab-result-list li { margin-bottom:8px; }
+.vocab-resume { display:block; width:100%; padding:18px; margin:22px 0; border:2px solid var(--ink); border-radius:12px; background:#fffdf7; text-align:left; font-weight:800; color:var(--ink); }
+@media(max-width:620px) {
+  .vocab-orbit { position:static; margin:0 0 22px auto; width:76px; height:76px; font-size:26px; }
+  .vocab-hero { padding-top:12px; }
+  .vocab-hero h1 { font-size:54px; }
+  .vocab-unit { grid-template-columns:48px 1fr; padding:20px; gap:15px; }
+  .vocab-unit-number { font-size:38px; }
+  .vocab-unit .vocab-cta { grid-column:2; justify-self:start; }
+  .vocab-stats { grid-template-columns:1fr 1fr; }
+  .vocab-actions,.vocab-words { grid-template-columns:1fr; }
+  .vocab-session-head { font-size:13px; }
+  .vocab-exercise { padding-bottom:28px; }
+}

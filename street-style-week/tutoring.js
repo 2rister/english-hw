@@ -18,8 +18,6 @@
   const gated = !authenticated && !qaContext() && !previewToken;
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
-    // Some Telegram wrappers expose no global `crypto`. This is a routing id, not a secret, so a
-    // local fallback keeps the lesson renderable while the bridge is unavailable.
     const webCrypto = window.crypto;
     if (webCrypto?.randomUUID) return webCrypto.randomUUID();
     if (!webCrypto?.getRandomValues) return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -134,7 +132,8 @@
     },
     units: [
       {id:'street-style',title:'Street Style',subtitle:'Go Getter 4 · Unit 1',description:'Clothes, patterns and words you can use.',available:true},
-      {id:'grammar-snack-01',number:'01g',title:'Grammar Snack',subtitle:'Present Simple vs Present Continuous',description:'Short theory, deliberate practice and a mastery test.',available:true,href:'../grammar-snack-01/'}
+      {id:'grammar-snack-01',number:'01g',title:'Grammar Snack',subtitle:'Present Simple vs Present Continuous',description:'Short theory, deliberate practice and a mastery test.',available:true,href:'../grammar-snack-01/'},
+      {id:'vocab-space',number:'Aa',title:'Vocab Space',subtitle:'Unit 2 · Home & Housework',description:'Listen, remember and write. Your three-day word mission.',available:true,href:'../vocab-space/',independent:true}
     ]
   };
   if (gated) {

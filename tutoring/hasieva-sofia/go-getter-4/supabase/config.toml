@@ -1,0 +1,20 @@
+project_id = "hasieva-go-getter-4"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "app"]
+extra_search_path = ["public", "app"]
+max_rows = 1000
+
+[auth]
+enabled = true
+
+[functions.hasieva-progress]
+# The endpoint authenticates Telegram WebApp initData itself. Do not turn this
+# into a browser-trusted endpoint or expose the service-role key to the client.
+verify_jwt = false
+
+[functions.hasieva-vocab]
+# Raw Telegram initData is verified inside the function; learner allowlist defaults to empty.
+verify_jwt = false
