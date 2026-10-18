@@ -1,0 +1,292 @@
+import { validateEvent, wordStats, pickRound, shuffle, openStore, createSync, createCommitter } from "./vocab-ports.mjs";
+function secureId(crypto = globalThis.crypto) {
+  if (crypto?.randomUUID) return crypto.randomUUID();
+  if (!crypto?.getRandomValues) throw Error("Secure answer IDs are unavailable. Reopen the app in Telegram.");
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = bytes[6] & 15 | 64;
+  bytes[8] = bytes[8] & 63 | 128;
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+function createVocabController({ tg, request = fetch, events = window, pageDocument = document, navigation = location, confirmStart = confirm, createPlayer = () => new Audio(), storeOpen = openStore, makeSync = createSync }) {
+  let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, paperPending = 0;
+  let message = { text: "Открываем набор слов…", confirmed: false };
+  const listeners = /* @__PURE__ */ new Set(), player = createPlayer();
+  let snapshot;
+  function emit() {
+    if (!disposed) {
+      snapshot = { bank, state, saving, paperPending, loading, error, playing, message, hash: navigation.hash.slice(1) };
+      listeners.forEach((fn) => fn());
+    }
+  }
+  function notify(text, confirmed = false) {
+    message = { text, confirmed };
+    emit();
+  }
+  const stopAudio = () => {
+    player.pause();
+    playing = null;
+  };
+  const audioEnded = () => {
+    playing = null;
+    emit();
+  };
+  const audioError = () => {
+    playing = null;
+    notify("Аудио не загрузилось. Ответ не засчитан — повтори воспроизведение.");
+  };
+  player.addEventListener("ended", audioEnded);
+  player.addEventListener("error", audioError);
+  function play(item, context = false, variant = 0) {
+    stopAudio();
+    player.src = context ? `assets/audio/${item.id}-c${variant + 1}.mp3` : item.audio;
+    playing = `${item.id}:${context}:${variant}`;
+    emit();
+    player.play().catch(() => {
+      playing = null;
+      notify("Не удалось включить аудио. Нажми ещё раз или проверь соединение.");
+    });
+  }
+  function route() {
+    stopAudio();
+    if (tg?.BackButton) tg.BackButton[navigation.hash ? "show" : "hide"]();
+    emit();
+  }
+  function go(hash) {
+    navigation.hash = hash;
+    route();
+  }
+  async function run(operation) {
+    try {
+      return await operation();
+    } catch (cause) {
+      notify("Изменения не сохранены: " + cause.message);
+    }
+  }
+  async function changeSession(change) {
+    if (saving || !state?.session) return;
+    saving = true;
+    emit();
+    try {
+      await commit((next) => change(next.session, next));
+      route();
+    } catch (cause) {
+      notify("Изменения не сохранены: " + cause.message);
+    } finally {
+      saving = false;
+      emit();
+    }
+  }
+  async function start(mode, diagnostic = false) {
+    if (saving || !state) return;
+    if (state.session && !confirmStart("Начать новое упражнение вместо незавершённого? Уже записанные ответы сохранятся.")) return;
+    saving = true;
+    emit();
+    try {
+      let ids;
+      if (mode === "exam") ids = shuffle(bank.items.map((item) => item.id));
+      else if (diagnostic) {
+        const unseen = bank.items.filter((item) => wordStats(state.events, item.id).listen.attempts === 0);
+        ids = unseen.length ? shuffle(unseen.slice(0, 9).map((item) => item.id)) : pickRound(bank, state.events, mode);
+      } else ids = pickRound(bank, state.events, mode);
+      await commit((next) => {
+        next.session = { id: secureId(), mode, ids, index: 0, feedback: null, hinted: false, pasted: false, draft: "", variant: next.day === 1 ? 0 : 1, results: [], retried: [], paperAnswers: {}, paperRequestIds: Object.fromEntries(ids.map((id) => [id, secureId()])) };
+      });
+      go("practice");
+    } catch (cause) {
+      notify("Упражнение не сохранено: " + cause.message);
+    } finally {
+      saving = false;
+      emit();
+    }
+  }
+  async function submitAnswer(answer, pasted = false) {
+    if (saving || !state?.session || state.session.feedback) return;
+    const session = state.session, item = bank.items.find((word) => word.id === session.ids[session.index]);
+    if (!item) return;
+    let event;
+    try {
+      event = { ...validateEvent(bank, { requestId: secureId(), sessionId: session.id, itemId: item.id, version: bank.version, mode: session.mode, answer, hinted: session.hinted || session.pasted || pasted }), createdAt: (/* @__PURE__ */ new Date()).toISOString(), confirmed: false };
+    } catch (cause) {
+      notify(cause.message);
+      return;
+    }
+    saving = true;
+    emit();
+    try {
+      await commit((next) => {
+        next.events.push(event);
+        next.session.results.push(event);
+        next.session.draft = "";
+        if (session.mode === "exam") {
+          next.session.index++;
+          next.session.pasted = false;
+        } else {
+          next.session.feedback = event;
+          if (!event.correct && session.ids.length - session.index > 3 && !session.retried.includes(item.id)) {
+            next.session.ids.splice(session.index + 3, 0, item.id);
+            next.session.retried.push(item.id);
+          }
+        }
+      });
+      notify("Ответ сохранён на устройстве · ожидает подтверждения сервера.");
+      route();
+      void sync.flush();
+    } catch (cause) {
+      notify("Ответ не сохранён: " + cause.message);
+    } finally {
+      saving = false;
+      emit();
+    }
+  }
+  function updateDraft(change) {
+    const session = state?.session;
+    if (!session) return Promise.resolve();
+    const { id, index } = session;
+    return run(() => commit((next) => {
+      if (next.session?.id === id && next.session.index === index) change(next.session);
+    }));
+  }
+  async function paperAnswer(id, value) {
+    const session = state?.session;
+    if (!session || session.mode !== "paper" || session.paperSaved || !session.ids.includes(id)) return false;
+    const sessionId = session.id;
+    paperPending++;
+    emit();
+    try {
+      await commit((next) => {
+        if (next.session?.id === sessionId) next.session.paperAnswers[id] = value;
+      });
+      return true;
+    } catch (cause) {
+      notify("Отметка не сохранена: " + cause.message);
+      return false;
+    } finally {
+      paperPending--;
+      emit();
+    }
+  }
+  async function paperSave() {
+    if (saving || paperPending || !state?.session || state.session.paperSaved) return;
+    saving = true;
+    emit();
+    try {
+      await commit((next) => {
+        if (next.session.paperSaved) return;
+        for (const id of next.session.ids) next.events.push({ ...validateEvent(bank, { requestId: next.session.paperRequestIds[id], sessionId: next.session.id, itemId: id, version: bank.version, mode: "paper", answer: "", hinted: false, selfCorrect: Boolean(next.session.paperAnswers[id]) }), createdAt: (/* @__PURE__ */ new Date()).toISOString(), confirmed: false });
+        next.session.paperSaved = true;
+      });
+      route();
+      void sync.flush();
+    } catch (cause) {
+      notify("Самопроверка не сохранена: " + cause.message);
+    } finally {
+      saving = false;
+      emit();
+    }
+  }
+  const online = () => {
+    void sync?.flush();
+  };
+  const visible = () => {
+    if (!pageDocument.hidden) online();
+  };
+  const safeArea = () => {
+    for (const side of ["top", "left", "right", "bottom"]) pageDocument.documentElement.style.setProperty("--telegram-safe-" + side, Math.max(tg?.safeAreaInset?.[side] || 0, tg?.contentSafeAreaInset?.[side] || 0) + "px");
+  };
+  const back = () => navigation.hash === "#unit-2" ? go("") : navigation.hash ? go("unit-2") : navigation.assign("../tutoring/#catalog");
+  async function boot() {
+    tg?.ready();
+    tg?.expand();
+    tg?.setHeaderColor?.("#f3f0e8");
+    tg?.setBackgroundColor?.("#f3f0e8");
+    safeArea();
+    tg?.onEvent?.("safeAreaChanged", safeArea);
+    tg?.onEvent?.("contentSafeAreaChanged", safeArea);
+    try {
+      const responses = await Promise.all([request("../tutoring/hasieva-sofia/go-getter-4/supabase/functions/_shared/vocab/unit2.json"), request("config.json")]);
+      if (responses.some((response) => !response.ok)) throw Error("Не удалось загрузить набор слов. Обнови страницу.");
+      const [loadedBank, config] = await Promise.all(responses.map((response) => response.json()));
+      if (disposed) return;
+      bank = loadedBank;
+      const owner = tg?.initData ? `telegram:${tg.initDataUnsafe?.user?.id || "unknown"}` : "preview";
+      store = await storeOpen(owner);
+      state = await store.load();
+      if (disposed) return;
+      const persist = createCommitter(state, store);
+      commit = async (change) => {
+        await persist(change);
+        emit();
+      };
+      sync = makeSync({ endpoint: config.endpoint, initData: tg?.initData, bank, state, commit, notify, request });
+      tg?.BackButton?.onClick(back);
+      events.addEventListener("hashchange", route);
+      events.addEventListener("online", online);
+      pageDocument.addEventListener("visibilitychange", visible);
+      loading = false;
+      route();
+      void sync.flush();
+    } catch (cause) {
+      loading = false;
+      error = cause.message;
+      notify(cause.message);
+    }
+  }
+  function dispose() {
+    disposed = true;
+    stopAudio();
+    player.removeEventListener("ended", audioEnded);
+    player.removeEventListener("error", audioError);
+    events.removeEventListener("hashchange", route);
+    events.removeEventListener("online", online);
+    pageDocument.removeEventListener("visibilitychange", visible);
+    tg?.BackButton?.offClick?.(back);
+    tg?.offEvent?.("safeAreaChanged", safeArea);
+    tg?.offEvent?.("contentSafeAreaChanged", safeArea);
+    listeners.clear();
+  }
+  emit();
+  return {
+    getSnapshot: () => snapshot,
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    boot,
+    dispose,
+    go,
+    play,
+    start,
+    submitAnswer,
+    paperSave,
+    pause: () => go("unit-2"),
+    next: () => changeSession((next) => {
+      next.index++;
+      next.feedback = null;
+      next.hinted = false;
+      next.pasted = false;
+    }),
+    draft: (value, pasted = false) => updateDraft((next) => {
+      next.draft = value;
+      if (pasted) next.pasted = true;
+    }),
+    hint: () => updateDraft((next) => {
+      if (next.mode !== "exam") next.hinted = true;
+    }),
+    paperAnswer,
+    day: (day) => run(() => commit((next) => {
+      next.day = day;
+    })),
+    clear: (hash) => run(async () => {
+      await commit((next) => {
+        next.session = null;
+      });
+      go(hash);
+    }),
+    notify
+  };
+}
+export {
+  createVocabController,
+  secureId
+};
