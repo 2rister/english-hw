@@ -1,0 +1,87 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import bank from '../../../supabase/functions/_shared/vocab/unit2.json' with {type:'json'};
+import {stories,storyParts,chooseStory,repairWords} from './story-practice.mjs';
+import {createVocabController} from './vocab-controller.mjs';
+import {summary} from './vocab-ports.mjs';
+
+test('four fresh stories have 25 unique gaps each, five per paragraph, and cover all 81 topic items',()=>{
+  const covered=new Set();
+  assert.equal(stories.length,4);
+  for(const story of stories){
+    const paragraphs=storyParts(story,bank),gaps=paragraphs.flat().filter(part=>part.itemId);
+    assert.equal(paragraphs.length,5);assert.equal(gaps.length,25);assert.equal(new Set(gaps.map(part=>part.itemId)).size,25);
+    for(const paragraph of paragraphs) assert.equal(paragraph.filter(part=>part.itemId).length,5);
+    gaps.forEach((part,index)=>{
+      covered.add(part.itemId);assert.equal(part.number,index+1);
+      const word=bank.items.find(item=>item.id===part.itemId).english;
+      assert.equal(part.cue[0],word[0]);assert.equal((part.cue.match(/_/g)||[]).length,(word.match(/[a-z]/gi)||[]).length-1);
+    });
+  }
+  assert.equal(covered.size,81);
+});
+
+test('least-practised selection visits all four stories before repeating',()=>{
+  const events=[],visited=new Set();
+  for(let n=0;n<4;n++){
+    const round=chooseStory(bank,events);visited.add(round.storyId);
+    events.push(...round.ids.map(itemId=>({itemId,mode:'exam',correct:true,hinted:true})));
+  }
+  assert.equal(visited.size,4);
+});
+
+test('a supported correction keeps a spelling in repair until an independent answer succeeds',()=>{
+  const wrong={itemId:'u2-001',mode:'exam',correct:false,hinted:true};
+  assert.deepEqual(repairWords([wrong,{...wrong,correct:true}]),['u2-001']);
+  assert.deepEqual(repairWords([wrong,{...wrong,correct:true,hinted:false,mode:'listen'}]),[]);
+});
+
+async function setup(){
+  let saved={events:[],session:null,day:1};
+  const c=createVocabController({tg:null,events:new EventTarget(),navigation:{hash:''},confirmStart:()=>true,
+    pageDocument:{hidden:false,documentElement:{style:{setProperty(){}}},addEventListener(){},removeEventListener(){}},
+    request:async url=>({ok:true,json:async()=>url==='unit2.json'?bank:{endpoint:''}}),
+    createPlayer:()=>({pause(){},play:async()=>{},addEventListener(){},removeEventListener(){}}),
+    storeOpen:async()=>({load:async()=>structuredClone(saved),save:async state=>{saved=structuredClone(state);return saved;}}),
+    makeSync:()=>({flush:async()=>{}})});
+  await c.boot();return c;
+}
+
+test('story answers persist with assistance flagged, exactly 25 delayed results, and zero independent mastery',async()=>{
+  const c=await setup();
+  try{
+    await c.start('exam',false,{story:true});
+    const ids=[...c.getSnapshot().state.session.ids];assert.equal(ids.length,25);
+    for(const id of ids){
+      await c.submitAnswer(bank.items.find(item=>item.id===id).english);
+      const s=c.getSnapshot().state.session;assert.equal(s.feedback,null);assert.equal(s.results.at(-1).hinted,true);
+    }
+    const state=c.getSnapshot().state;assert.equal(state.session.index,25);assert.equal(state.events.length,25);
+    assert.equal(summary(bank,state.events).written,0);
+  }finally{c.dispose();}
+});
+
+test('independent short checks have 25 distinct items and repair includes guided-story mistakes',async()=>{
+  const c=await setup();
+  try{
+    await c.start('exam',false,{story:true});const itemId=c.getSnapshot().state.session.ids[0];
+    await c.submitAnswer('misspelling');await c.start('listen',false,{repair:true});
+    assert.deepEqual(c.getSnapshot().state.session.ids,[itemId]);
+    await c.start('exam',false,{limit:25});const session=c.getSnapshot().state.session;
+    assert.equal(session.ids.length,25);assert.equal(new Set(session.ids).size,25);assert.equal(session.storyId,undefined);
+    await c.submitAnswer(bank.items.find(item=>item.id===session.ids[0]).english);
+    assert.equal(c.getSnapshot().state.session.results[0].hinted,false);
+  }finally{c.dispose();}
+});
+
+test('successful short checks reach every topic word before settling into review',async()=>{
+  const c=await setup(),covered=new Set();
+  try{
+    for(let round=0;round<4;round++){
+      await c.start('exam',false,{limit:25});
+      const ids=[...c.getSnapshot().state.session.ids];
+      for(const id of ids){covered.add(id);await c.submitAnswer(bank.items.find(item=>item.id===id).english);}
+    }
+    assert.equal(covered.size,81);
+  }finally{c.dispose();}
+});
