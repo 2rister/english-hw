@@ -48,3 +48,11 @@ Verification: 28 React logic tests including final-save failure/retry, threshold
 Every graded result now uses the dial, including results below 85%. During the 1.2-second count-up, the needle vibrates subtly and bottom light streaks create acceleration; both settle at the true percentage. Passing rounds retain the random celebration and reveal Continue after the 3.3-second sequence. Below the threshold there are no celebration particles; Try again appears after the dial and streaks settle (1.4 seconds), retrying the same block. Reload/navigation and Reduce Motion display the final score and action immediately. The exact score, 85% access rule, storage and server contracts are unchanged.
 
 Verification: build and 28 logic tests passed; seven-case iPhone 17 WebKit gate verifies vibration, speed streaks, delayed Continue/Try again, all effects, 84/85/88/100%, reduced motion and reload; 51-event story regression passed. Mechanical design detector returned no findings. Public and physical-device checks remain separate.
+
+## iMessage-style top-edge confetti — 19 October 2026
+
+Visually researched the animated iMessage reconstruction by Bryce Bostwick (https://bryce.co/recreating-imessage-confetti/) and the official canvas-confetti demo (https://github.com/catdad/canvas-confetti). Replaced the confetti variant with canvas-confetti 1.9.4 (ISC), emitted above the viewport and directed downward: 120 smaller pieces plus 220 larger foreground pieces. It covers the entire screen, rotates during descent and ignores pointer input. Other randomly chosen effects and the racing dial remain.
+
+Continue waits for the library's actual completion promise. Cleanup cancels pending launch and resets the emitter; navigation/reload and Reduce Motion retain immediate final-state behavior. No scoring, 85% gating, backend, identity or learner-record changes. THIRD_PARTY_NOTICES.txt includes the package license. Compressed runtime increase: 4,466 bytes.
+
+Build, 28 logic tests, seven-case iPhone 17 WebKit gate and 51-event story regression passed. The gate checks full viewport canvas bounds, delayed Continue, effects, reduced motion, thresholds and reload. Synthetic screenshots and a short recorded preview were inspected; no remote writes. Native Telegram/physical iPhone remains separate evidence.
