@@ -1,7 +1,8 @@
 import {build} from 'esbuild';
 import {fileURLToPath} from 'node:url';
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
 const root=new URL('../../../../',import.meta.url);
+await copyFile(new URL('../supabase/functions/_shared/vocab/unit2.json',import.meta.url),new URL('vocab-space/unit2.json',root));
 await build({entryPoints:[fileURLToPath(new URL('frontend/react/main.jsx',import.meta.url))],outfile:fileURLToPath(new URL('street-style-week/app.js',root)),bundle:true,format:'iife',target:['safari15','chrome100'],jsx:'automatic',minify:true,legalComments:'eof',define:{'process.env.NODE_ENV':'"production"'}});
 for(const [entry,file,format] of [['GrammarApp.jsx','grammar-snack-01/app.js','iife'],['VocabApp.jsx','vocab-space/app.mjs','esm']]) {
  await build({entryPoints:[fileURLToPath(new URL('frontend/react/'+entry,import.meta.url))],outfile:fileURLToPath(new URL(file,root)),bundle:true,format,target:['safari15','chrome100'],jsx:'automatic',minify:true,legalComments:'eof',define:{'process.env.NODE_ENV':'"production"'}});
