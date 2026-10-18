@@ -9,3 +9,5 @@ Vocab Space uses the existing LearnCore Supabase project. Apply versioned migrat
 Verified before release: React logic 15 tests; browser catalog/startup and all three module workflows; Vocab data/PostgreSQL/RLS 16 tests; Edge/HMAC 6 tests. Cloud signed synthetic identity: save, acknowledged read-back, deduplication and auth/isolation/content rejection passed. Synthetic data was deleted and its temporary allowlist entry removed. No existing learner history was imported. Backend mock tests do not send notifications.
 
 Public HTTP, browser rendering, native Telegram rendering and actual learner use are separate checks. A successful synthetic server test does not establish that Sonya opened or completed an exercise. No messages were sent to her.
+
+The build copies the shared server word bank to `/vocab-space/unit2.json`; browsers use this public path because GitHub Pages may omit underscore-prefixed source directories. The public JSON is generated from the same 81-word definition used for server grading.

@@ -204,7 +204,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
     tg?.onEvent?.("safeAreaChanged", safeArea);
     tg?.onEvent?.("contentSafeAreaChanged", safeArea);
     try {
-      const responses = await Promise.all([request("../tutoring/hasieva-sofia/go-getter-4/supabase/functions/_shared/vocab/unit2.json"), request("config.json")]);
+      const responses = await Promise.all([request("unit2.json"), request("config.json")]);
       if (responses.some((response) => !response.ok)) throw Error("Не удалось загрузить набор слов. Обнови страницу.");
       const [loadedBank, config] = await Promise.all(responses.map((response) => response.json()));
       if (disposed) return;
