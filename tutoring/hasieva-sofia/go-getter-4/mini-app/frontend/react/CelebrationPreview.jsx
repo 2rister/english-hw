@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import SuccessCelebration from './SuccessCelebration.jsx';
 
 function CelebrationPreview() {
-  const [run,setRun] = useState(1), [ready,setReady] = useState(false), [percent,setPercent] = useState(88);
+  const [run,setRun] = useState(1), [ready,setReady] = useState(false), [percent,setPercent] = useState(()=>{const value=Number(new URLSearchParams(location.search).get("score")??88);return Number.isFinite(value)?Math.max(0,Math.min(100,Math.round(value))):88;});
   const complete = useCallback(value => setReady(value), []);
   const outcome = {percent,passed:percent>=85,correct:percent,total:100,supported:false};
   function replay(next=percent) {setPercent(next);setReady(false);setRun(value=>value+1);}

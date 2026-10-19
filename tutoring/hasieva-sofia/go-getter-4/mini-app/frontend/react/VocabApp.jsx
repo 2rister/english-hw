@@ -1,3 +1,4 @@
+import FinishScene from './FinishScene.jsx';
 import SuccessCelebration from "./SuccessCelebration.jsx";
 import {roundOutcome} from "./block-result.mjs";
 import Answer from "./VocabAnswer.jsx";
@@ -91,10 +92,11 @@ function PaperRow({ controller: c, id, item, initial }) {
 function Results({ controller:c, snapshot:s }) {
   const session=s.state.session,outcome=roundOutcome(session),correct=outcome.correct;
   const [finishReady,setFinishReady]=useState(false);
+  const [paperWasSaved]=useState(Boolean(session.paperSaved));
   const errors=session.results.filter(event=>event.correct===false);
   const paper=session.mode==="paper",selfCheck=paper&&!session.paperSaved;
   const scoreLabel=paper?"Self-check saved.":`${correct} / ${outcome.total} ${session.storyId?"answers correct with first-letter clues":outcome.supported?"answers correct with support":"independent answers correct"}`;
-  return <ResultEntrance>{selfCheck?<><h1 className="result-title">Now check your paper.</h1><p className="vocab-intro">Tick only answers with no mistakes, including every word in a phrase.</p><div>{session.ids.map(id=>{const item=s.bank.items.find(word=>word.id===id);return <PaperRow key={id} controller={c} id={id} item={item} initial={Boolean(session.paperAnswers[id])}/>;})}</div><p className="vocab-note">This is your own self-check, separate from verified spelling.</p><ActionButton className="primary" disabled={s.saving||s.paperPending>0} onClick={()=>c.paperSave()}>Save self-check</ActionButton></>:<>
+  return <ResultEntrance>{paper&&!selfCheck&&<FinishScene animated={!paperWasSaved}/>} {selfCheck?<><h1 className="result-title">Now check your paper.</h1><p className="vocab-intro">Tick only answers with no mistakes, including every word in a phrase.</p><div>{session.ids.map(id=>{const item=s.bank.items.find(word=>word.id===id);return <PaperRow key={id} controller={c} id={id} item={item} initial={Boolean(session.paperAnswers[id])}/>;})}</div><p className="vocab-note">This is your own self-check, separate from verified spelling.</p><ActionButton className="primary" disabled={s.saving||s.paperPending>0} onClick={()=>c.paperSave()}>Save self-check</ActionButton></>:<>
     {!paper?<SuccessCelebration key={session.id} outcome={outcome} label={scoreLabel} sessionId={session.id} completedNow={s.completedNow} onComplete={setFinishReady}/>:<h1 className={paper?"result-title":"result-score"} aria-label={scoreLabel}>{paper?scoreLabel:<><span>{correct} / {outcome.total}</span><small>{session.storyId?"answers correct with first-letter clues":outcome.supported?"answers correct with support":"independent answers correct"}</small></>}</h1>}
     {!paper&&<p className="block-outcome" role="status">{outcome.passed?`${outcome.percent}% · Block cleared.${session.storyId?" The next story and independent check are unlocked.":""}`:`${outcome.percent}% · Reach 85% to clear this block. Repair your mistakes, then try it again.`}</p>}
     <p className="vocab-intro">{paper?"Your paper self-check has been recorded.":session.storyId?"First-letter clues were provided. Repair mistakes without a model, then check independently after a break.":"Your independent answers for this round. Review mistakes after a break."}</p>
