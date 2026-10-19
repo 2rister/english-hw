@@ -54,8 +54,8 @@ test("mastery preserves errors, advances once per answer, and keeps one complete
     x.tick();
   }
   const s = x.c.getSnapshot().state;
-  assert.equal(s.current.correct, 20);
-  assert.equal(s.current.score, 100);
+  assert.equal(s.current.correct, 19);
+  assert.equal(s.current.score, 95);
   assert.equal(s.current.answers[0].firstTry, false);
   assert.equal(s.history.length, 1);
   x.c.answer(items[0].answer);
@@ -87,4 +87,30 @@ test("Grammar teacher preview never writes local progress or calls save", async 
   assert.equal(x.writes(), 0);
   assert.deepEqual(x.calls, ["preview"]);
   x.c.dispose();
+});
+
+test("meteor repairs cannot inflate final first-try mastery", async()=>{
+  const x=setup();await x.c.boot();x.c.startAttempt();
+  const items=x.c.getSnapshot().variants[0].items;
+  for(const [index,item] of items.entries()){
+    if(index<4){x.c.answer('wrong course');x.c.answer('wrong course again');}
+    x.c.answer(item.answer);x.tick();
+  }
+  const state=x.c.getSnapshot().state;
+  assert.equal(state.current.correct,16);assert.equal(state.current.score,80);
+  assert.equal(state.history[0].score,80);assert.equal(state.current.errorEvents.length,8);
+  x.c.dispose();
+});
+
+test("flight checkpoint keeps course/time without answering and rejects invalid positions",async()=>{
+ const x=setup();await x.c.boot();x.c.startAttempt();
+ const id=x.c.getSnapshot().variants[0].items[0].id;
+ x.c.checkpointFlight({itemId:id,selectedId:id+':0',remainingMs:12345});
+ const state=JSON.parse(x.stored.get(x.c.key));
+ assert.deepEqual(state.current.flight,{launched:true,itemId:id,selectedId:id+':0',remainingMs:12345});
+ assert.equal(state.current.answers.length,0);
+ x.c.checkpointFlight({itemId:'missing',selectedId:'bad',remainingMs:20000});
+ assert.equal(x.c.getSnapshot().state.current.flight.remainingMs,12345);
+ x.c.checkpointFlight({itemId:id,selectedId:null,remainingMs:Infinity});
+ assert.equal(x.c.getSnapshot().state.current.flight.remainingMs,12345);x.c.dispose();
 });

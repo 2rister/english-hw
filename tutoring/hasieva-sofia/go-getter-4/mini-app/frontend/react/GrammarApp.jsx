@@ -1,4 +1,5 @@
-import SuccessCelebration from './SuccessCelebration.jsx';
+import GrammarSpace from './GrammarSpace.jsx';
+import GrammarFinish from './GrammarFinish.jsx';
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createGrammarController } from "./grammar-controller.mjs";
@@ -9,13 +10,6 @@ function Response({ item, answer, disabled }) {
     event.preventDefault();
     answer(value.trim());
   }}><label className="visually-hidden" htmlFor="grammar-answer">Your answer</label><input id="grammar-answer" className="answer-input" autoComplete="off" placeholder={item.answer.includes(";") ? "Type both answers: use ;, , or /" : "Type the complete answer"} value={value} disabled={disabled} onChange={(event) => setValue(event.target.value)} /><button className="primary" disabled={disabled}>Check</button></form>;
-}
-function GrammarFinish({current,fresh,onContinue,children}) {
-  const [ready,setReady]=useState(!fresh);
-  const theoryBlock=current.phase==='theory';
-  const score=theoryBlock?100:current.score;
-  const id=current.id+(theoryBlock?'-theory':'');
-  return <><SuccessCelebration key={id} outcome={{percent:score,correct:theoryBlock?5:current.correct,total:theoryBlock?5:20,passed:theoryBlock||score>=90,passPercent:90,supported:true}} label={`${score}% correct with practice`} sessionId={id} completedNow={fresh?id:null} onComplete={setReady}/>{children}<button className="primary" disabled={!ready} onClick={onContinue}>{!ready?'Finishing your run…':theoryBlock?'Start mastery test →':score>=90?'Back to My Learning':'Try a new version →'}</button></>;
 }
 function GrammarApp({ controller: c }) {
   const s = useSyncExternalStore(c.subscribe, c.getSnapshot), current = s.state.current;
@@ -35,10 +29,10 @@ function GrammarApp({ controller: c }) {
   if (current?.variantId) {
     const variant = s.variants.find((v) => v.id === current.variantId), item2 = variant?.items[s.shown];
     if (!item2) return <section className="snack-card">{error || <p role="alert">This saved test version is unavailable. Return to My Learning and contact your tutor.</p>}</section>;
-    return <section className="snack-card"><div className="task-meta">Variant {variant.id} · {s.shown + 1} / 20 · {item2.type}</div><h2>{strip(item2.prompt)}</h2><p className="report-note">Say your answer first. Your tutor receives a saved error with this sentence and the rule.</p><Response key={current.id + ":" + s.shown} item={item2} answer={c.answer} disabled={s.advancing} /><div id="feedback" aria-live="polite" className={s.feedback ? `feedback-box ${s.feedback.wrong ? "wrong" : ""}` : void 0}>{s.feedback?.text}</div>{error}</section>;
+    return <><GrammarSpace current={current} item={item2} shown={s.shown} feedback={s.feedback} disabled={s.advancing} onAnswer={c.answer} onCheckpoint={c.checkpointFlight}/>{error}</>;
   }
   const item = theory[s.theoryIndex];
-  return <section className="snack-card"><p className="snack-kicker">Grammar Snack 01 · B1</p><h1>Present Simple<br /><span>vs Present Continuous</span></h1>{!item || s.state.theoryDone && !s.advancing ? <GrammarFinish current={current||{id:"theory-restored",phase:"theory"}} fresh={!initialTheoryDone.current} onContinue={()=>c.startAttempt()}><p>You finished five quick checks with practice. Now take a 20-item mastery test.</p></GrammarFinish> : <><p className="task-meta">Quick check {s.theoryIndex + 1} / {theory.length}</p><div className="theory-step"><strong>{item.title}</strong><span>{item.text}</span></div><h2>{strip(item.q)}</h2><Response key={"theory:" + s.theoryIndex} item={item} answer={c.answerTheory} disabled={s.advancing} /><div aria-live="polite" className={s.feedback ? `feedback-box ${s.feedback.wrong ? "wrong" : ""}` : void 0}>{s.feedback?.text}</div></>}{error}</section>;
+  return <section className="snack-card"><p className="snack-kicker">Grammar Snack 01 · B1</p><h1>Present Simple<br /><span>vs Present Continuous</span></h1>{!item || s.state.theoryDone && !s.advancing ? <GrammarFinish current={current||{id:"theory-restored",phase:"theory"}} fresh={!initialTheoryDone.current} onContinue={()=>c.startAttempt()}><p>You finished five quick checks. Your final mission has 20 grammar challenges. Choose a course or type the answer; mistakes trigger a meteor hit and a repair. First-try answers determine your final score.</p></GrammarFinish> : <><p className="task-meta">Quick check {s.theoryIndex + 1} / {theory.length}</p><div className="theory-step"><strong>{item.title}</strong><span>{item.text}</span></div><h2>{strip(item.q)}</h2><Response key={"theory:" + s.theoryIndex} item={item} answer={c.answerTheory} disabled={s.advancing} /><div aria-live="polite" className={s.feedback ? `feedback-box ${s.feedback.wrong ? "wrong" : ""}` : void 0}>{s.feedback?.text}</div></>}{error}</section>;
 }
 const controller = createGrammarController({ tutoring: window.TUTORING, storage: localStorage, request: fetch, createQueue: window.createRevisionedSaveQueue, mergeState: window.mergeGrammarState });
 const root = document.querySelector("#app");
