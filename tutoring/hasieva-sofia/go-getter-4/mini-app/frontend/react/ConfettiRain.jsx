@@ -17,7 +17,7 @@ export default function ConfettiRain({onComplete}) {
           colors:['#9550ed','#ffbe32','#ff762d','#7781ff','#4b9cff','#ff4f77','#ef82cd']});
         Promise.all([background,foreground]).then(() => {if(active) onComplete();}, () => {if(active) onComplete();});
       } catch { if(active) onComplete(); }
-    }, 1100);
+    }, 2350);
     return () => {active=false;clearTimeout(timer);fire.reset();};
   }, [onComplete]);
   return createPortal(<div className="finish-effects finish-confetti" aria-hidden="true" data-celebration-effect="confetti">

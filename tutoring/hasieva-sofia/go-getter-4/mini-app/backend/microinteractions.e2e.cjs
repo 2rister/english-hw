@@ -10,7 +10,7 @@ const {servePublishRoot}=require('./e2e-server.cjs');
   await page.goto(server.baseUrl+'/vocab-space/celebration.html');
   await page.locator('[data-celebration-effect="confetti"]').waitFor();
   assert.equal(await page.getByRole('button',{name:'Continue',exact:true}).count(),0);
-  await page.waitForTimeout(1700);
+  await page.waitForTimeout(3000);
   await page.screenshot({path:require('node:path').resolve(__dirname,'../artifacts/microinteractions-preview.png'),fullPage:true});
   await page.getByRole('button',{name:'Continue',exact:true}).waitFor({timeout:20000});
   await page.getByRole('button',{name:'84%',exact:true}).click();
