@@ -1,0 +1,26 @@
+/* Shared feedback for the personal tutoring app. */
+:root { --interaction-ease: cubic-bezier(.23,1,.32,1); }
+:where(button, .back-button, .vocab-home-link):not(:disabled) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 120ms var(--interaction-ease), background-color 160ms var(--interaction-ease), border-color 160ms var(--interaction-ease), box-shadow 160ms var(--interaction-ease);
+}
+:where(button):not(:disabled):active { transform: scale(.985); }
+:where(button, input, textarea, a):focus-visible { outline: 3px solid var(--focus, #326cdd); outline-offset: 4px; }
+:where(.answer-input, .writing-box) { transition: border-color 160ms var(--interaction-ease), box-shadow 160ms var(--interaction-ease); }
+:where(.answer-input, .writing-box):focus-visible { box-shadow: 0 0 0 4px #326cdd14; }
+:where(.check-item) { transition: background-color 160ms var(--interaction-ease), border-color 160ms var(--interaction-ease); }
+.check-item:has(input:checked) { background-color: #b9e33d20; }
+:where(input[type="checkbox"]) { accent-color: var(--ink, #151515); }
+:where(.feedback, .hint, .feedback-box):not(:empty) { animation: interaction-feedback 160ms var(--interaction-ease) both; }
+@keyframes interaction-feedback { from { opacity: .4; } to { opacity: 1; } }
+@media (hover: hover) and (pointer: fine) {
+  :where(.unit-card, .day-open):not(:disabled):hover { background-color: #b9e33d16; }
+  .unit-card .unit-action { transition: transform 160ms var(--interaction-ease); }
+  .unit-card:not(:disabled):hover .unit-action { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(button, .back-button, .vocab-home-link, .answer-input, .writing-box, .check-item, .unit-card .unit-action) { transition: none !important; }
+  :where(button):not(:disabled):active { transform: none !important; }
+  :where(.feedback, .hint, .feedback-box):not(:empty) { animation: none; }
+}

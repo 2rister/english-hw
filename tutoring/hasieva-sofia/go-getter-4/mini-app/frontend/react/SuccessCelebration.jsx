@@ -32,7 +32,7 @@ function FinishEffect({kind,onComplete}) {
   </div>, document.body);
 }
 
-export default function SuccessCelebration({outcome, label, sessionId, completedNow, onComplete}) {
+export default function SuccessCelebration({outcome, label, sessionId, completedNow, onComplete, effectKind}) {
   const reduce = useReducedMotion(), [effect,setEffect] = useState(null), [accelerating,setAccelerating] = useState(false);
   const jitter = useMotionValue(0);
   const finishRound = useCallback(() => {setEffect(null);onComplete(true);}, [onComplete]);
@@ -47,7 +47,7 @@ export default function SuccessCelebration({outcome, label, sessionId, completed
     celebrated.add(sessionId);
     if (reduce) { onComplete(true);return; }
     if (outcome.passed) {
-      lastEffect = randomEffect(lastEffect);
+      lastEffect = effectKind || randomEffect(lastEffect);
       setEffect(lastEffect);
     }
     setAccelerating(true);
@@ -57,7 +57,7 @@ export default function SuccessCelebration({outcome, label, sessionId, completed
     const settled = setTimeout(() => { setAccelerating(false);jitter.set(0); }, 1200);
     const timer = outcome.passed&&lastEffect==='confetti'?null:setTimeout(finishRound, outcome.passed?3300:1400);
     return () => { playback.stop();vibration.stop();clearTimeout(settled);clearTimeout(timer);setAccelerating(false);setEffect(null);jitter.set(0);value.set(outcome.percent); };
-  }, [completedNow, sessionId, outcome.percent, outcome.passed, reduce, value, jitter, onComplete, finishRound]);
+  }, [completedNow, sessionId, outcome.percent, outcome.passed, reduce, value, jitter, onComplete, finishRound, effectKind]);
   return <>{effect&&!reduce&&<FinishEffect kind={effect} onComplete={finishRound}/>}<section className="finish-dashboard" data-block-passed={String(outcome.passed)} data-score-percent={outcome.percent}>
     <AnimatePresence>{accelerating&&!reduce&&<motion.div className="finish-speed" aria-hidden="true" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:0.18,ease}}>
       {Array.from({length:12},(_,i)=>{const angle=(i-5.5)*5;return <motion.i key={i} style={{left:`${5+i*8}%`,background:i%3===0?'#ff52ba':'#65f7f0'}}
