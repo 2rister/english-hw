@@ -158,16 +158,25 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
     later(() => {
       shown = current.index;
       if (shown >= 20) finish();
-    }, 350);
+    }, 900);
   }
   function finish() {
     const current = state.current;
     if (!current || current.complete) return;
     current.complete = true;
+    current.correct = current.answers.filter(answer=>answer.correct&&answer.firstTry).length;
     current.score = Math.round(current.correct / 20 * 100);
     current.completedAt = (/* @__PURE__ */ new Date()).toISOString();
     if (!state.history.some((item) => item.id === current.id)) state.history.push({ id: current.id, variantId: current.variantId, score: current.score, completedAt: current.completedAt });
     save();
+  }
+  function checkpointFlight(value){
+    const current=state.current,item=variants.find(variant=>variant.id===current?.variantId)?.items[shown];
+    if(!item||current.complete||value.itemId!==item.id)return;
+    const remainingMs=Number(value.remainingMs);
+    if(!Number.isFinite(remainingMs))return;
+    current.flight={launched:true,itemId:item.id,remainingMs:Math.max(0,Math.min(20000,remainingMs)),selectedId:typeof value.selectedId==='string'?value.selectedId.slice(0,80):null};
+    persist();
   }
   function dispose() {
     disposed = true;
@@ -175,7 +184,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
     listeners.clear();
   }
   emit();
-  return { key, getSnapshot: () => snapshot, subscribe(fn) {
+  return { checkpointFlight, key, getSnapshot: () => snapshot, subscribe(fn) {
     listeners.add(fn);
     return () => listeners.delete(fn);
   }, boot, startAttempt, answerTheory, answer, save, dispose };
