@@ -5,17 +5,14 @@
   // Dismiss Telegram's native splash before authentication or network work.
   tg?.ready();
   const authenticated = Boolean(tg?.initData);
-  // Learners work only inside Telegram: that is where initData — and therefore the tutor's sheet —
-  // comes from. ?qa=1, or any local server, keeps the browser build usable for review and tests.
-  const qaContext = () => location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-    || new URLSearchParams(location.search).get('qa') === '1';
+  // Browser sessions use device-local progress; private server data still requires authentication.
   // The tutor opens the same Mini App in preview to read the learner's sheet state read-only: with
   // ?preview=1, through Telegram with https://t.me/<bot>?startapp=preview, or in a plain browser with
   // the ?preview=<token> link the tutor's own session hands out.
   const previewParam = new URLSearchParams(location.search).get('preview');
   const previewToken = previewParam && previewParam !== '1' ? previewParam : null;
   const previewRequested = previewParam === '1' || tg?.initDataUnsafe?.start_param === 'preview' || Boolean(previewToken);
-  const gated = !authenticated && !qaContext() && !previewToken;
+  const gated = false;
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
     const webCrypto = window.crypto;
@@ -106,22 +103,6 @@
       bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg?.initData,previewToken:previewToken||undefined,state,revision,dump}},bridgeOrigin);
     });
   }
-  function mountTelegramGate(){
-    const pose = new URL('assets/mascot/study/miso-studying-book-840.webp', scriptUrl).href;
-    const gate = document.createElement('section');
-    gate.className = 'telegram-gate';
-    gate.setAttribute('role','dialog');
-    gate.setAttribute('aria-modal','true');
-    gate.setAttribute('aria-labelledby','telegramGateTitle');
-    gate.innerHTML = `
-      <img class="telegram-gate__miso" src="${pose}" alt="Miso, focused on his book" decoding="async">
-      <p class="telegram-gate__kicker">Personal tutoring</p>
-      <h1 id="telegramGateTitle">Open this inside Telegram.</h1>
-      <p>Your lessons and answers live with your tutor, and Telegram is where that connection opens.</p>
-      <a class="telegram-gate__button" href="https://t.me/CheckUphw_bot" rel="noopener">Open @CheckUphw_bot <span aria-hidden="true">→</span></a>
-      <p class="telegram-gate__hint">Then choose “My learning” in the bot menu.</p>`;
-    document.body.append(gate);
-  }
   window.TUTORING = {
     authenticated, gated, preview: previewRequested, previewToken, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
     back(hash) {
@@ -136,10 +117,5 @@
       {id:'vocab-space',number:'Aa',title:'Vocab Space',subtitle:'Unit 2 · Home & Housework',description:'Listen, remember and write. Your three-day word mission.',available:true,href:'../vocab-space/',independent:true}
     ]
   };
-  if (gated) {
-    mountTelegramGate();
-    setStatus('Open this inside Telegram.');
-  } else {
-    setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · progress stays on this device.');
-  }
+  setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · saved on this browser only. Telegram progress is separate.');
 })();
