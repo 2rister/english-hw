@@ -34,7 +34,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
     emit();
   }
   function merge(remote) {
-    const local = { ...state, theoryStep: Math.max(state.theoryStep || 0, remote?.theoryStep || 0), theoryDone: Boolean(state.theoryDone || remote?.theoryDone), current: state.current || remote?.current || null };
+    const local = { ...state, theoryStep: Math.max(state.theoryStep || 0, remote?.theoryStep || 0), theoryDone: Boolean(state.theoryDone || remote?.theoryDone), current: state.current?.phase === "theory" && remote?.current?.variantId ? remote.current : state.current || remote?.current || null };
     state = mergeState(local, remote);
     persist();
   }
@@ -140,7 +140,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
       answer2 = { id: item.id, type: item.type, q: strip(item.prompt), wrong: [], expected: item.answer, feedback: item.feedback, firstTry: true };
       current.answers.push(answer2);
     }
-    if (!matches(value, item.answer)) {
+    if (!matches(value, item.answer, item.prompt)) {
       answer2.firstTry = false;
       answer2.wrong.push(value);
       current.errorEvents = current.errorEvents || [];

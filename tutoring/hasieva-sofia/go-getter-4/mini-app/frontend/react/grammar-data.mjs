@@ -1,8 +1,19 @@
-const normalise = (value) => String(value || "").toLowerCase().trim().replace(/[.!?]+$/, "").replace(/\s+/g, " ");
-const matches = (value, answer) => {
-  const expected = normalise(answer), actual = normalise(value);
-  if (!expected.includes(";")) return actual === expected;
-  return actual.split(/\s*[;,/]\s*/).map(normalise).join(";") === expected.split(";").map(normalise).join(";");
+const contractions = {
+  "don't": "do not", "doesn't": "does not", "isn't": "is not", "aren't": "are not",
+  "i'm": "i am", "you're": "you are", "we're": "we are", "they're": "they are",
+  "he's": "he is", "she's": "she is", "it's": "it is", "that's": "that is", "there's": "there is"
+};
+const normalise = (value) => String(value || "").toLowerCase().trim()
+  .replace(/[’‘]/g, "'").replace(/\b[a-z]+'[a-z]+\b/g, word => contractions[word] || word)
+  .replace(/[.!?]+$/, "").replace(/\s+/g, " ");
+const matches = (value, answer, prompt = "") => {
+  const actual = normalise(value), parts = answer.split(";").map(normalise);
+  if (parts.length === 1 ? actual === parts[0] : actual.split(/\s*[;,/]\s*/).map(normalise).join(";") === parts.join(";")) return true;
+  if (!/^Complete:\s*/i.test(prompt)) return false;
+  const sentence = prompt.replace(/^Complete:\s*/i, "").replace(/___\s*\([^)]*\)/g, "___");
+  if ((sentence.match(/___/g) || []).length !== parts.length) return false;
+  let index = 0;
+  return actual === normalise(sentence.replace(/___/g, () => parts[index++]));
 };
 function parseBank(text) {
   return text.split(/^### Variant /m).slice(1).map((chunk) => {

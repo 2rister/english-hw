@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><script>
+  const channel = <?!= JSON.stringify(channel) ?>;
+  const allowedOrigin = 'https://2rister.github.io';
+  let host;
+  window.addEventListener('message', function (event) {
+    if (event.origin !== allowedOrigin || event.data?.kind !== 'tutoring-request' || event.data.channel !== channel || host && event.source !== host) return;
+    host = event.source;
+    const id = event.data.id;
+    google.script.run.withSuccessHandler(function (result) {
+      host.postMessage({kind:'tutoring-response',channel:channel,id:id,result:result},allowedOrigin);
+    }).withFailureHandler(function (err) {
+      host.postMessage({kind:'tutoring-response',channel:channel,id:id,error:String(err.message || 'Could not save progress')},allowedOrigin);
+    }).tutoringCall(event.data.request);
+  });
+  // HtmlService adds its own frames; Telegram Web may add another outer frame.
+  // Only the GitHub ancestor can receive this nonce-bound handshake.
+  let ancestor = window.parent;
+  for (let depth=0;depth<12;depth++) {
+    ancestor.postMessage({kind:'tutoring-ready',channel:channel},allowedOrigin);
+    if (ancestor === ancestor.parent) break;
+    ancestor = ancestor.parent;
+  }
+</script></body></html>

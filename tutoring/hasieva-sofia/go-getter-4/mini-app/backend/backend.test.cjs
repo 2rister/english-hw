@@ -8,8 +8,8 @@ let book, failTelegram=false, failEdit=false;
 const sheet = name => ({name,rows:[],appendRow(row){this.rows.push(row);return this;},getDataRange(){return {getValues:()=>this.rows.map(row=>[...row])};},getRange(row,col){return {setValues:values=>{values[0].forEach((value,offset)=>{this.rows[row-1][col-1+offset]=value;});},setValue:value=>{this.rows[row-1][col-1]=value;}};},setName(value){this.name=value;return this;}});
 const context = vm.createContext({Date,JSON,Number,String,Object,Array,Number,Math,
   Logger:{log:value=>logs.push(String(value))},
-  PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key],setProperty:(key,value)=>{props[key]=value;}})},
-  Utilities:{formatDate:()=> '2026-10-01',newBlob:value=>({getBytes:()=>Buffer.from(value)}),computeHmacSha256Signature:(value,key)=>[...crypto.createHmac('sha256',Buffer.from(key)).update(Buffer.from(value)).digest()]},
+  PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key],setProperty:(key,value)=>{props[key]=value;},deleteProperty:key=>{delete props[key];}})},
+  Utilities:{getUuid:()=>crypto.randomUUID(),formatDate:()=> '2026-10-01',newBlob:value=>({getBytes:()=>Buffer.from(value)}),computeHmacSha256Signature:(value,key)=>[...crypto.createHmac('sha256',Buffer.from(key)).update(Buffer.from(value)).digest()]},
   LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
   SpreadsheetApp:{create:()=>{book={sheets:[sheet('Sheet1')],getId:()=> 'private-book',getSheets(){return this.sheets;},insertSheet(name){const s=sheet(name);this.sheets.push(s);return s;},getSheetByName(name){return this.sheets.find(s=>s.name===name);}};return book;},openById:id=>{assert.equal(id,'private-book');return book;},flush(){}},
   UrlFetchApp:{fetch:(url,options)=>{if(failTelegram)throw new Error('Synthetic delivery failure');const method=url.split('/').at(-1),payload=JSON.parse(options.payload);if(failEdit && method==='editMessageText')return {getContentText:()=>JSON.stringify({ok:false,description:failEdit==='not-modified'?'Bad Request: message is not modified':'Bad Request: message to edit not found'})};assert.ok(method !== 'sendMessage' || payload.chat_id>0);delivered.push({method,...payload});return {getContentText:()=>JSON.stringify({ok:true,result:{message_id:100+delivered.length}})};}}
@@ -169,3 +169,32 @@ assert.match(overflowReport,/Показаны 25 ошибок из 26; полн�
 const mixedHistory=context.tutoringGrammarReport_({first_name:'Synthetic'},{variantId:'01',index:2,correct:0,answers:[{q:'Old wrong answer',wrong:['went'],expected:'go',feedback:'Use the base form.'},{q:'Repeated event',wrong:['is knowing'],expected:'know'}],errorEvents:[{q:'Repeated event',wrong:'is knowing',expected:'know'}]});
 assert.match(mixedHistory,/Old wrong answer/);assert.equal((mixedHistory.match(/Repeated event/g)||[]).length,1);
 console.log('PASS: Grammar Snack combines theory and mastery errors in one editable report, migrates legacy rows, and bounds reports to 25 errors.');
+
+// Browser handoff reuses the same rows; credentials never encode learner records.
+props.TUTORING_LEARNER_ID='777';
+assert.throws(()=>context.tutoringCall({action:'browserLink',initData:login(111)}),/enrolled learner/);
+assert.throws(()=>context.tutoringCall({action:'browserLink',previewToken:'synthetic'}),/read-only/);
+const handoff=context.tutoringCall({action:'browserLink',initData:login(777)});
+assert.match(handoff.code,/^[a-f0-9]{64}$/);
+assert.ok(!JSON.stringify(props).includes(handoff.code));
+const paired=context.tutoringCall({action:'browserExchange',browserCode:handoff.code});
+assert.equal(paired.userId,777);
+assert.throws(()=>context.tutoringCall({action:'browserExchange',browserCode:handoff.code}),/expired/);
+assert.ok(!JSON.stringify(props).includes(paired.browserSession));
+assert.equal(context.tutoringCall({action:'browserIdentity',browserSession:paired.browserSession}).userId,777);
+const saved=context.tutoringCall({action:'load',unit:'street-style',browserSession:paired.browserSession});
+assert.equal(saved.revision,context.tutoringCall({action:'load',unit:'street-style',initData:login(777)}).revision);
+const browserSave=context.tutoringCall({action:'save',unit:'street-style',browserSession:paired.browserSession,revision:saved.revision,state:saved.state||{xp:0,days:{},badges:[]}});
+assert.equal(browserSave.saved,true);
+assert.throws(()=>context.tutoringCall({action:'load',unit:'street-style',browserSession:'0'.repeat(64)}),/expired/);
+context.tutoringCall({action:'browserRevoke',browserSession:paired.browserSession});
+assert.throws(()=>context.tutoringCall({action:'browserIdentity',browserSession:paired.browserSession}),/expired/);
+const expiring=context.tutoringCall({action:'browserLink',initData:login(777)});
+const expiringKey='TUTORING_HANDOFF_'+context.tutoringBrowserDigest_(expiring.code);
+props[expiringKey]=JSON.stringify({id:'777',expires:Date.now()-1});
+assert.throws(()=>context.tutoringCall({action:'browserExchange',browserCode:expiring.code}),/expired/);
+const other=context.tutoringCall({action:'browserLink',initData:login(777)});
+const otherSession=context.tutoringCall({action:'browserExchange',browserCode:other.code});
+props['TUTORING_SESSION_'+context.tutoringBrowserDigest_(otherSession.browserSession)]=JSON.stringify({id:'777',expires:Date.now()-1});
+assert.throws(()=>context.tutoringCall({action:'browserIdentity',browserSession:otherSession.browserSession}),/expired/);
+console.log('PASS: browser bound mint, digest-only storage, one-use exchange, same-row load/save, invalid/expiry/revoke, preview denied.');

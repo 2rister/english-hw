@@ -400,13 +400,58 @@ function tutoringDiagnosticsFor_(progressRows, book, unit) {
   return {progress:progress, evidence:evidence};
 }
 
+// Browser bearer credentials are random; only their keyed digests are persisted.
+function tutoringBrowserDigest_(value) {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) throw new Error('Browser sign-in expired. Open a fresh browser link from Telegram.');
+  const key = PropertiesService.getScriptProperties().getProperty('TG_TOKEN');
+  return Utilities.computeHmacSha256Signature(value, key).map(function (b) { return ('0' + ((b+256)%256).toString(16)).slice(-2); }).join('');
+}
+function tutoringBrowserSecret_() { return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g,''); }
+function tutoringBrowserAuth_(request) {
+  const props = PropertiesService.getScriptProperties();
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const bound = props.getProperty('TUTORING_LEARNER_ID');
+    if (request.action === 'browserLink') {
+      const user = tutoringUser_(request.initData);
+      if (!bound || String(user.id) !== bound) throw new Error('Only the enrolled learner can connect a browser.');
+      const code = tutoringBrowserSecret_();
+      props.setProperty('TUTORING_HANDOFF_' + tutoringBrowserDigest_(code),JSON.stringify({id:bound,expires:Date.now()+600000}));
+      return {ok:true,code:code,expiresIn:600};
+    }
+    const exchange = request.action === 'browserExchange';
+    const digest = tutoringBrowserDigest_(exchange ? request.browserCode : request.browserSession);
+    const property = (exchange ? 'TUTORING_HANDOFF_' : 'TUTORING_SESSION_') + digest;
+    const raw = props.getProperty(property);
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session || session.expires < Date.now() || session.id !== bound) {
+      if (raw) props.deleteProperty(property);
+      throw new Error('Browser sign-in expired. Open a fresh browser link from Telegram.');
+    }
+    if (exchange) {
+      props.deleteProperty(property);
+      const token = tutoringBrowserSecret_();
+      props.setProperty('TUTORING_SESSION_' + tutoringBrowserDigest_(token),JSON.stringify({id:bound,expires:Date.now()+2592000000}));
+      return {ok:true,browserSession:token,userId:Number(bound)};
+    }
+    if (request.action === 'browserRevoke') props.deleteProperty(property);
+    return {id:Number(bound),first_name:props.getProperty('TUTORING_LEARNER_NAME') || 'Learner'};
+  } finally { lock.releaseLock(); }
+}
+
 function tutoringCall(request) {
+  if (!request) throw new Error('Missing request');
+  if (['browserLink','browserExchange','browserRevoke','browserIdentity'].indexOf(request.action) >= 0) {
+    if (request.previewToken) throw new Error('Preview access is read-only');
+    const result = tutoringBrowserAuth_(request);
+    return request.action === 'browserIdentity' ? {ok:true,userId:result.id} : result;
+  }
   const hasToken = Boolean(request && request.previewToken);
   const tokenValid = hasToken && tutoringPreviewTokenValid_(request.previewToken);
   if (hasToken && !tokenValid) throw new Error('Preview link is not valid any more');
   if (tokenValid && request.action !== 'preview') throw new Error('Preview access is read-only');
   const tokenPreview = tokenValid && request.action === 'preview';
-  const user = tokenPreview ? null : tutoringUser_(request && request.initData);
+  const user = tokenPreview ? null : request.browserSession ? tutoringBrowserAuth_(request) : tutoringUser_(request.initData);
   if (TUTORING_UNITS.indexOf(request.unit) < 0) throw new Error('Unknown unit');
   if (['load','save','preview','deviceDump'].indexOf(request.action) < 0) throw new Error('Unknown action');
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
