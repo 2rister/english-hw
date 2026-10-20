@@ -45,6 +45,8 @@ async function waitVocab(page,predicate){for(let n=0;n<80;n++){const state=await
   }
   console.log('PASS React Street Style: old-key restore, wrong evidence through reload, full day and sprint, history/review, authentic writing draft reload, speaking self-report, preserved first-day history.');
   await page.goto(server.baseUrl+'/grammar-snack-01/');await page.getByRole('heading',{name:'Present Simple vs Present Continuous'}).waitFor();assert.equal(await page.locator('#app').getAttribute('data-renderer'),'react');
+  await page.getByRole('region',{name:'Grammar learning path'}).waitFor();assert.equal(await page.getByRole('button',{name:'Flight locked',exact:true}).isDisabled(),true);assert.equal(await page.locator('.grammar-checks strong').allTextContents().then(x=>x.join(',')),'Next,Locked,Locked,Locked,Locked');
+  await page.getByRole('button',{name:'Start learning',exact:true}).click();
   for(const item of theory){await page.getByRole('heading',{name:strip(item.q),exact:true}).waitFor();await page.getByRole('button',{name:item.answer,exact:true}).click()}
   await page.getByRole('button',{name:'Launch grammar mission →',exact:true}).waitFor();assert.equal(await page.locator('.finish-backdrop').count(),1);await page.getByRole('button',{name:'Launch grammar mission →',exact:true}).click();assert.equal(await page.locator('.finish-backdrop').count(),0);await page.getByRole('button',{name:'Start flight →',exact:true}).click();
   const variant=variants[0];

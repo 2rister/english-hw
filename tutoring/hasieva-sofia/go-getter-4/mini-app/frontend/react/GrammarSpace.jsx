@@ -4,7 +4,7 @@ import {SpaceScene} from './GrammarSpaceScene.js';
 import {flightQuestion,flightStats,COURSE_MS} from './grammar-space.mjs';
 import {strip} from './grammar-data.mjs';
 
-export default function GrammarSpace({current,item,shown,feedback,disabled,onAnswer,onCheckpoint}){
+export default function GrammarSpace({current,item,shown,feedback,disabled,onAnswer,onCheckpoint,onOverview}){
   const reduce=useReducedMotion(),question=useMemo(()=>flightQuestion(item,current.id),[item,current.id]);
   const saved=current.flight?.itemId===item.id?current.flight:null;
   const [phase,setPhase]=useState(current.flight?.launched?'paused':'intro');
@@ -64,7 +64,7 @@ export default function GrammarSpace({current,item,shown,feedback,disabled,onAns
     <div className="flight-courses">{question.options.map((option,index)=><button type="button" className="flight-course" data-course={option.id} aria-pressed={selected===option.id} key={option.id} disabled={phase!=='flight'||disabled} onClick={()=>choose(index)}><span className="course-number" aria-hidden="true" aria-hidden="true">{String(index+1).padStart(2,'0')}</span><span>{option.text.replace(/\s*;\s*/g,' / ')}</span></button>)}</div>
     <div className="flight-steering" role="group" aria-label="Drag to steer your rocket" onPointerDown={event=>{if(phaseRef.current!=='flight')return;event.currentTarget.setPointerCapture(event.pointerId);const box=event.currentTarget.getBoundingClientRect(),x=Math.max(.1,Math.min(.9,(event.clientX-box.left)/box.width));choose(Math.min(question.options.length-1,Math.floor(x*question.options.length)),x);}} onPointerMove={event=>{if(!event.currentTarget.hasPointerCapture(event.pointerId))return;const box=event.currentTarget.getBoundingClientRect(),x=Math.max(.1,Math.min(.9,(event.clientX-box.left)/box.width));choose(Math.min(question.options.length-1,Math.floor(x*question.options.length)),x);}}><span>DRAG TO STEER · ← →</span></div>
     <div className="flight-controls"><button className="primary" disabled={!selected||phase!=='flight'||disabled} onClick={commit}>Lock course</button></div>
-    {phase==='paused'&&<div className="flight-modal"><h2>Flight paused</h2><p>Your course and remaining time are kept.</p><button className="primary" autoFocus onClick={launch}>Resume flight</button></div>}
+    {phase==='paused'&&<div className="flight-modal"><h2>Flight paused</h2><p>Your course and remaining time are kept.</p><button className="primary" autoFocus onClick={launch}>Resume flight</button>{onOverview&&<button className="secondary" onClick={onOverview}>Learning path</button>}</div>}
     {phase==='feedback'&&<div className={'flight-feedback '+(feedback?.wrong?'wrong':'correct')} role="status"><h2>{feedback?.wrong?'METEOR HIT':'HYPERDRIVE'}</h2><p>{feedback?.text}</p>{feedback?.wrong&&<button className="primary" autoFocus onClick={repair}>Repair course →</button>}</div>}
   </section>;
 }
