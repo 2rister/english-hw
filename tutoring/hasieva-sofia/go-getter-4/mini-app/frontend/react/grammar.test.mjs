@@ -114,3 +114,38 @@ test("flight checkpoint keeps course/time without answering and rejects invalid 
  x.c.checkpointFlight({itemId:id,selectedId:null,remainingMs:Infinity});
  assert.equal(x.c.getSnapshot().state.current.flight.remainingMs,12345);x.c.dispose();
 });
+
+
+test("grammar accepts exact filled sentences and equivalent contractions without extra clauses", () => {
+  const item = parseBank(bank)[0].items[9];
+  for (const value of ["do not understand", "don't understand", "I do not understand this instruction.", "I don’t understand this instruction!"]) {
+    assert(matches(value, item.answer, item.prompt), value);
+  }
+  for (const value of ["I understand this instruction", "I don't understand this instruction because I am tired", "I do not understand", "do not", "don't understand this instruction"]) {
+    assert(!matches(value, item.answer, item.prompt), value);
+  }
+  assert(matches("They aren't waiting for a taxi", "They are not waiting for a taxi."));
+  assert(matches("I'm not staying at home tonight", "I am not staying at home tonight."));
+  assert(!matches("They aren't waiting for a bus", "They are not waiting for a taxi."));
+  const pair = parseBank(bank)[0].items[18];
+  assert(matches("We have lunch at 1 every day, but we aren't having lunch now.", pair.answer, pair.prompt));
+  assert(!matches("We are having lunch at 1 every day, but we don't have lunch now.", pair.answer, pair.prompt));
+  assert(!matches("I don't understand this instruction", item.answer, "Correct: I am not understanding this instruction."));
+});
+
+test("restored legacy mission retains completed theory, sector position and original errors", async () => {
+  const remote = { kind: "grammar-snack-01", theoryDone: true, theoryStep: 5, variantIndex: 0, history: [], current: {
+    id: "synthetic-legacy", variantId: "01", index: 9, correct: 9, complete: false,
+    answers: [{id:"10",firstTry:false,wrong:["previous rejected input"]}], errorEvents: []
+  }};
+  const x=setup({authenticated:true,remote});await x.c.boot();
+  const restored=x.c.getSnapshot();
+  assert.equal(restored.theoryIndex,5);assert.equal(restored.state.theoryDone,true);
+  assert.equal(restored.state.current.index,9);assert.equal(restored.shown,9);
+  x.c.answer("I don't understand this instruction");x.tick();
+  const state=x.c.getSnapshot().state;
+  assert.equal(state.current.index,10);
+  assert.equal(state.current.answers[0].firstTry,false);
+  assert.deepEqual(state.current.answers[0].wrong,["previous rejected input"]);
+  assert.equal(state.history.length,0);x.c.dispose();
+});

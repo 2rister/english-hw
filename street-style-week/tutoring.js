@@ -12,6 +12,10 @@
   const previewParam = new URLSearchParams(location.search).get('preview');
   const previewToken = previewParam && previewParam !== '1' ? previewParam : null;
   const previewRequested = previewParam === '1' || tg?.initDataUnsafe?.start_param === 'preview' || Boolean(previewToken);
+  let browserSession = null;
+  const browserCode = new URLSearchParams(location.hash.slice(1)).get('browserCode');
+  if (browserCode) history.replaceState(null,'',location.pathname+location.search+'#catalog');
+  try { if (!authenticated && !previewRequested) browserSession = localStorage.getItem('tutoring-browser-session'); } catch (_) {}
   const gated = false;
   const endpoint = 'https://script.google.com/macros/s/AKfycbyT5Q9_nqThf7xQtZ89p0NWQr7e3L9NU6zTpL_A9UW0ysz_XnPyXB1ERCInhUQscbIFTA/exec?tutoring=1';
   const uuid = () => {
@@ -63,11 +67,11 @@
       }, 700);
     }
   };
-  if (authenticated || previewToken) {
+  if (authenticated || previewToken || browserCode || browserSession) {
     if (authenticated) { tg.expand(); tg.setHeaderColor?.('#f3f0e8'); tg.setBackgroundColor?.('#f3f0e8'); }
     const safeArea = () => {
       for (const side of ['top','bottom','left','right']) {
-        document.documentElement.style.setProperty(`--telegram-safe-${side}`,`${Math.max(tg.safeAreaInset?.[side] || 0,tg.contentSafeAreaInset?.[side] || 0)}px`);
+        document.documentElement.style.setProperty(`--telegram-safe-${side}`,`${Math.max(tg?.safeAreaInset?.[side] || 0,tg?.contentSafeAreaInset?.[side] || 0)}px`);
       }
     };
     safeArea(); tg?.onEvent?.('safeAreaChanged',safeArea); tg?.onEvent?.('contentSafeAreaChanged',safeArea);
@@ -100,7 +104,7 @@
       const id = uuid();
       const timeout = setTimeout(() => { calls.delete(id); reject(new Error('Connection timed out. Your work is saved on this device.')); },25000);
       calls.set(id,{resolve,reject,timeout});
-      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg?.initData,previewToken:previewToken||undefined,state,revision,dump}},bridgeOrigin);
+      bridge.postMessage({kind:'tutoring-request',channel,id,request:{action,unit:unit || 'street-style',initData:tg?.initData,browserSession:browserSession||undefined,browserCode:action==='browserExchange'?browserCode:undefined,previewToken:previewToken||undefined,state,revision,dump}},bridgeOrigin);
     });
   }
   window.TUTORING = {
@@ -117,5 +121,45 @@
       {id:'vocab-space',number:'Aa',title:'Vocab Space',subtitle:'Unit 2 · Home & Housework',description:'Listen, remember and write. Your three-day word mission.',available:true,href:'../vocab-space/',independent:true}
     ]
   };
-  setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · saved on this browser only. Telegram progress is separate.');
+  const pairing = document.createElement('button');
+  pairing.type = 'button'; pairing.className = 'secondary';
+  if (authenticated && !previewRequested) {
+    pairing.textContent = 'Continue in browser'; statusRow.append(pairing);
+    pairing.onclick = async () => {
+      pairing.disabled = true;
+      try {
+        const result = await call('browserLink');
+        const link = new URL('../tutoring/',scriptUrl);
+        link.hash = 'browserCode='+result.code;
+        const open = document.createElement('a'); open.textContent = 'Open your browser link';
+        open.href = link.href; open.rel = 'noreferrer'; open.target = '_blank';
+        open.onclick = event => { if (tg?.openLink) { event.preventDefault(); tg.openLink(link.href); } };
+        pairing.replaceWith(open); setStatus('Private link ready · open within 10 minutes. It works once.');
+      } catch (error) { setStatus(error.message); pairing.disabled = false; }
+    };
+  }
+  window.TUTORING.sessionReady = (async () => {
+    if (authenticated || previewRequested || (!browserCode && !browserSession)) return;
+    setStatus('Connecting this browser to your saved progress…');
+    try {
+      const result = await call(browserCode ? 'browserExchange' : 'browserIdentity');
+      if (!Number.isSafeInteger(result.userId) || result.userId <= 0) throw new Error('Browser sign-in could not be verified.');
+      if (browserCode) browserSession = result.browserSession;
+      try { localStorage.setItem('tutoring-browser-session',browserSession); }
+      catch (_) { throw new Error('Allow browser storage, then open a fresh browser link from Telegram.'); }
+      window.TUTORING.authenticated = true; window.TUTORING.userId = result.userId;
+      pairing.textContent = 'Disconnect this browser'; statusRow.append(pairing);
+      pairing.onclick = async () => {
+        pairing.disabled = true;
+        try { await call('browserRevoke'); localStorage.removeItem('tutoring-browser-session'); location.href = '../tutoring/#catalog'; }
+        catch (error) { setStatus(error.message); pairing.disabled = false; }
+      };
+    } catch (error) {
+      try { localStorage.removeItem('tutoring-browser-session'); } catch (_) {}
+      browserSession = null; setStatus(error.message); throw error;
+    }
+  })();
+  // Entrypoints also handle this rejection; suppress a premature unhandled-rejection report.
+  window.TUTORING.sessionReady.catch(() => {});
+  setStatus(authenticated ? 'Connecting to your saved progress…' : 'Browser practice · local progress only. To continue saved Telegram work, open Continue in browser inside Telegram first.');
 })();

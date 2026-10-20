@@ -52,7 +52,17 @@ function GrammarApp({ controller: c }) {
   const item = theory[s.theoryIndex];
   return <section className="snack-card"><button className="secondary" onClick={showPath}>← Learning path</button><p className="snack-kicker">Grammar Snack 01 · B1</p><h1>Present Simple<br /><span>vs Present Continuous</span></h1>{!item || s.state.theoryDone && !s.advancing ? <GrammarFinish current={current||{id:"theory-restored",phase:"theory"}} fresh={!initialTheoryDone.current} onContinue={()=>c.startAttempt()}><p>You finished five quick checks. Your final mission has 20 grammar challenges. Choose a course or type the answer; mistakes trigger a meteor hit and a repair. First-try answers determine your final score.</p></GrammarFinish> : <><p className="task-meta">Quick check {s.theoryIndex + 1} / {theory.length}</p><div className="theory-step"><strong>{item.title}</strong><span>{item.text}</span></div><h2>{strip(item.q)}</h2><Response key={"theory:" + s.theoryIndex} item={item} answer={c.answerTheory} disabled={s.advancing} /><div aria-live="polite" className={s.feedback ? `feedback-box ${s.feedback.wrong ? "wrong" : ""}` : void 0}>{s.feedback?.text}</div></>}{error}</section>;
 }
+async function startApp() {
+  try { await window.TUTORING?.sessionReady; }
+  catch (error) {
+    const root = document.querySelector('#app');
+    root.setAttribute('role','alert'); root.textContent = error.message;
+    return;
+  }
 const controller = createGrammarController({ tutoring: window.TUTORING, storage: localStorage, request: fetch, createQueue: window.createRevisionedSaveQueue, mergeState: window.mergeGrammarState });
 const root = document.querySelector("#app");
 root.dataset.renderer = "react";
 createRoot(root).render(<GrammarApp controller={controller} />);
+
+}
+startApp();
