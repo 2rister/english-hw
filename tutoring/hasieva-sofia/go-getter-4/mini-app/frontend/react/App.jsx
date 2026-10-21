@@ -34,13 +34,16 @@ function CopyButton({ text, id, children = "Copy link" }) {
 function Catalog({ controller: c, snapshot: s }) {
   const miso = useRef(null);
   const progress = weeklyItems(c.data, s.state, s.evidence);
+  const personal = c.tutoring.authenticated && !s.preview;
   useEffect(() => {
     mountCatalogMiso();
     const node = miso.current;
     return () => node?.getAnimations?.({ subtree: true }).forEach((animation) => animation.cancel());
   }, []);
-  return <><section className="catalog-head"><p className="section-note">Personal tutoring</p><h1>Your learning.<br /><span>One unit at a time.</span></h1>
+  return <><section className="catalog-head"><p className="section-note">{s.preview ? "Sonya’s profile · Read-only preview" : personal ? "Sonya’s profile" : "Device-only practice"}</p><h1>{personal ? "Sonya’s learning." : s.preview ? "Sonya’s learning preview." : "Practise here."}<br /><span>One unit at a time.</span></h1>
     <button ref={miso} id="catalogMiso" className="catalog-miso" type="button" aria-label="Tap Miso while he studies"><span className="catalog-miso__stage"><picture><source type="image/webp" srcSet={assetURL("assets/mascot/study/miso-studying-book-840.webp")} /><img className="catalog-miso__base" src={assetURL("assets/mascot/study/miso-studying-book.png")} width="1084" height="1451" decoding="async" alt="Miso, focused on his book" /></picture>{[0, 1, 2].map((i) => <img key={i} className="catalog-miso__reaction" alt="" aria-hidden="true" decoding="async" />)}</span></button><p>Choose a unit and pick up where you left off.</p></section>
+    {!personal&&!s.preview&&<section className="privacy-note" aria-label="Connect your personal profile"><div><strong>This is device-only practice.</strong><p>These results belong to this browser. Sonya’s saved learning progress is available after connecting her profile.</p><p>Open this app in Telegram, choose <strong>Continue in browser</strong>, then open the private browser link on this device.</p></div></section>}
+    {s.preview&&<p className="preview-note">Read-only preview. Practice here does not change Sonya’s saved progress.</p>}
     <PreviewPanel snapshot={s} /><section aria-labelledby="unitsTitle"><div className="section-heading"><div><p className="section-note">Your collection</p><h2 id="unitsTitle">Learning units</h2></div></div><div id="unitGrid" className="unit-grid">
     {c.tutoring.units.map((unit, index) => {
     const waiting = c.tutoring.authenticated && !s.restored && !unit.independent && !s.preview;

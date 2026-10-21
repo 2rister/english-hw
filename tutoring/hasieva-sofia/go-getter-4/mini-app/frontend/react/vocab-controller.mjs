@@ -9,7 +9,7 @@ function secureId(crypto = globalThis.crypto) {
   const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
-function createVocabController({ tg, request = fetch, events = window, pageDocument = document, navigation = location, confirmStart = confirm, createPlayer = () => new Audio(), storeOpen = openStore, makeSync = createSync }) {
+function createVocabController({ tg, tutoring, request = fetch, events = window, pageDocument = document, navigation = location, confirmStart = confirm, createPlayer = () => new Audio(), storeOpen = openStore, makeSync = createSync }) {
   let bank, state, store, sync, commit, saving = false, loading = true, error = "", disposed = false, playing = null, audioStatus = "idle", audioEpoch = 0, paperPending = 0;
   let message = { text: "Loading your word set…", confirmed: false };
   const listeners = /* @__PURE__ */ new Set(), player = createPlayer();
@@ -243,7 +243,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
       const [loadedBank, config] = await Promise.all(responses.map((response) => response.json()));
       if (disposed) return;
       bank = loadedBank;
-      const owner = tg?.initData ? `telegram:${tg.initDataUnsafe?.user?.id || "unknown"}` : "preview";
+      const owner = tutoring?.authenticated ? `telegram:${tutoring.userId}` : tg?.initData ? `telegram:${tg.initDataUnsafe?.user?.id || "unknown"}` : "preview";
       store = await storeOpen(owner);
       state = await store.load();
       if (disposed) return;
@@ -255,7 +255,7 @@ function createVocabController({ tg, request = fetch, events = window, pageDocum
         if (current?.id === previous?.id && previous && previous.index < previous.ids.length && current.index >= current.ids.length) completedNow = current.id;
         emit();
       };
-      sync = makeSync({ endpoint: config.endpoint, initData: tg?.initData, bank, state, commit, notify, request });
+      sync = makeSync({ endpoint: config.endpoint, initData: tg?.initData, browserSession: tutoring?.browserCredential?.(), bank, state, commit, notify, request });
       tg?.BackButton?.onClick(back);
       events.addEventListener("hashchange", route);
       events.addEventListener("online", online);

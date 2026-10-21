@@ -452,6 +452,8 @@ function tutoringCall(request) {
   if (tokenValid && request.action !== 'preview') throw new Error('Preview access is read-only');
   const tokenPreview = tokenValid && request.action === 'preview';
   const user = tokenPreview ? null : request.browserSession ? tutoringBrowserAuth_(request) : tutoringUser_(request.initData);
+  const boundLearner = PropertiesService.getScriptProperties().getProperty('TUTORING_LEARNER_ID');
+  if (request.action !== 'preview' && boundLearner && String(user.id) !== boundLearner) throw new Error('This personal learning app belongs to the enrolled learner. Tutor access is read-only.');
   if (TUTORING_UNITS.indexOf(request.unit) < 0) throw new Error('Unknown unit');
   if (['load','save','preview','deviceDump'].indexOf(request.action) < 0) throw new Error('Unknown action');
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
