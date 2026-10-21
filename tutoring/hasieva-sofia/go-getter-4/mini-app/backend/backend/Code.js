@@ -67,3 +67,17 @@ function doGet(e) {
   return HtmlService.createHtmlOutput('Personal tutoring backend is running.')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+
+// Identity-only bridge for the existing Vocab Edge Function; never returns learner records.
+function doPost(e) {
+  try {
+    const raw = e && e.postData && e.postData.contents || '';
+    if (raw.length > 1000) throw new Error('Invalid identity request');
+    const request = JSON.parse(raw);
+    if (request.action !== 'browserIdentity') throw new Error('Invalid identity request');
+    const user = tutoringBrowserAuth_({action:'browserIdentity',browserSession:request.browserSession});
+    return ContentService.createTextOutput(JSON.stringify({ok:true,userId:user.id})).setMimeType(ContentService.MimeType.JSON);
+  } catch (_) {
+    return ContentService.createTextOutput(JSON.stringify({ok:false,error:'Browser sign-in expired. Connect this browser again from Telegram.'})).setMimeType(ContentService.MimeType.JSON);
+  }
+}

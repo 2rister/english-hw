@@ -131,6 +131,7 @@ assert.match(grammarInitial,/Synthetic grammar prompt/);assert.match(grammarInit
 assert.equal(book.getSheetByName('Results').rows.filter(row=>row[1]==='777'&&row[2]==='grammar-snack-01-error').length,0);
 const theoryOnly={kind:'grammar-snack-01',variantIndex:0,history:[],theoryStep:0,theoryDone:false,current:{id:'theory-only-synthetic',variantId:'01',phase:'theory',index:0,correct:0,answers:[],errorEvents:[{id:'theory-error-1',type:'theory',q:'Every day, Mia walks to college.',wrong:'is walking',expected:'walks',feedback:'Every day shows a habit, so use Present Simple.'}],complete:false}};
 const sentBeforeTheory=delivered.filter(item=>item.method==='sendMessage').length;
+props.TUTORING_LEARNER_ID='779';
 result=context.tutoringCall({action:'save',unit:'grammar-snack-01',initData:login(779,'theory_only'),revision:0,state:theoryOnly});
 assert.equal(result.saved,true);assert.equal(result.delivery,'sent');
 assert.equal(delivered.filter(item=>item.method==='sendMessage').length,sentBeforeTheory+1);
@@ -141,6 +142,7 @@ const resultsSheet=book.getSheetByName('Results');
 resultsSheet.appendRow(['780|grammar-snack-01|legacy|error|legacy-1','780','grammar-snack-01-error','01',new Date(),JSON.stringify({id:'legacy-1',q:'Legacy question',wrong:'legacy wrong',expected:'legacy right',feedback:'Legacy rule'}),'pending','']);
 const legacyAttempt={kind:'grammar-snack-01',variantIndex:1,history:[],current:{id:'legacy-migration',variantId:'01',index:0,correct:0,answers:[],errorEvents:[{id:'new-legacy-test',q:'New question',wrong:'wrong',expected:'right',feedback:'New rule'}],complete:false}};
 const legacySendsBefore=delivered.filter(item=>item.method==='sendMessage'&&/Grammar Snack 01/.test(item.text)).length;
+props.TUTORING_LEARNER_ID='780';
 context.tutoringCall({action:'save',unit:'grammar-snack-01',initData:login(780,'legacy_student'),revision:0,state:legacyAttempt});
 assert.equal(delivered.filter(item=>item.method==='sendMessage'&&/Grammar Snack 01/.test(item.text)).length,legacySendsBefore+1);
 assert.match(delivered.filter(item=>/Grammar Snack 01/.test(item.text)).at(-1).text,/Legacy question/);
@@ -152,6 +154,7 @@ migrated=context.tutoringCall({action:'load',unit:'grammar-snack-01',initData:lo
 assert.ok(migrated.current.errorEvents.some(event=>event.id==='legacy-1'));
 assert.equal(delivered.filter(item=>/Grammar Snack · новая ошибка/.test(item.text)).length,0);
 const grammarUpdated=JSON.parse(JSON.stringify(grammarState));grammarUpdated.current.index=2;grammarUpdated.current.correct=2;grammarUpdated.current.answers.push({id:'2',type:'meaning',q:'Second synthetic prompt',wrong:[],expected:'works',feedback:'Use the Present Simple for routines.'});
+props.TUTORING_LEARNER_ID='777';
 result=context.tutoringCall({action:'save',unit:'grammar-snack-01',initData:login(777,'new_handle'),revision:1,state:grammarUpdated});
 assert.equal(result.saved,true);assert.equal(delivered.at(-1).method,'editMessageText');
 assert.equal(book.getSheetByName('Results').rows.filter(row=>row[1]==='777'&&row[2]==='grammar-snack-01').length,1);
@@ -198,3 +201,17 @@ const otherSession=context.tutoringCall({action:'browserExchange',browserCode:ot
 props['TUTORING_SESSION_'+context.tutoringBrowserDigest_(otherSession.browserSession)]=JSON.stringify({id:'777',expires:Date.now()-1});
 assert.throws(()=>context.tutoringCall({action:'browserIdentity',browserSession:otherSession.browserSession}),/expired/);
 console.log('PASS: browser bound mint, digest-only storage, one-use exchange, same-row load/save, invalid/expiry/revoke, preview denied.');
+
+assert.throws(()=>context.tutoringCall({action:'load',unit:'street-style',initData:login(333)}),/enrolled learner/);
+assert.throws(()=>context.tutoringCall({action:'save',unit:'street-style',initData:login(111),state:{}}),/enrolled learner/);
+assert.equal(context.tutoringCall({action:'preview',unit:'street-style',initData:login(333)}).readOnly,true);
+console.log('PASS: enrolled-only load/save, teacher preview remains read-only.');
+
+context.ContentService={MimeType:{JSON:'application/json'},createTextOutput:text=>({text,setMimeType(){return this;}})};
+vm.runInContext(fs.readFileSync(__dirname+'/backend/Code.js','utf8'),context);
+const identityLink=context.tutoringCall({action:'browserLink',initData:login(777)});
+const identitySession=context.tutoringCall({action:'browserExchange',browserCode:identityLink.code});
+const identityResponse=JSON.parse(context.doPost({postData:{contents:JSON.stringify({action:'browserIdentity',browserSession:identitySession.browserSession,userId:111,url:'https://evil.invalid'})}}).text);
+assert.deepEqual(identityResponse,{ok:true,userId:777});
+for(const body of ['bad',JSON.stringify({action:'save',state:{}}),JSON.stringify({action:'browserIdentity',browserSession:'0'.repeat(64)})])assert.equal(JSON.parse(context.doPost({postData:{contents:body}}).text).ok,false);
+console.log('PASS: HTTP bridge returns verified identity only and rejects unrelated actions or credentials.');

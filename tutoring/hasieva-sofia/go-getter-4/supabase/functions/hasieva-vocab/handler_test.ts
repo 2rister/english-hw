@@ -35,3 +35,17 @@ Deno.test('unknown content and invalid events never reach storage', async () => 
   const response = await handler(request({ action: 'attempt', setId: bank.id, initData: await login(101), event: { itemId: 'unknown' } }));
   assert(response.status === 400); assert(saved.length === before);
 });
+
+Deno.test('browser session uses server verified owner, rejects invalid and unassigned identity', async () => {
+  const browserHandler = createHandler({botToken:token,allowedIds:new Set([101]),origin:'https://test.invalid',
+    verifyBrowser:async session=>{if(session==='a'.repeat(64))return 101;if(session==='b'.repeat(64))return 999;throw Error('Session expired');},
+    load:async id=>[{owner:id}],save:async(id,event)=>({...event,owner:id})});
+  const valid=await browserHandler(request({action:'load',setId:bank.id,browserSession:'a'.repeat(64),userId:999}));
+  assert(valid.status===200); assert((await valid.json()).events[0].owner===101);
+  assert((await browserHandler(request({action:'load',setId:bank.id,browserSession:'c'.repeat(64)}))).status===401);
+  assert((await browserHandler(request({action:'load',setId:bank.id,browserSession:'b'.repeat(64)}))).status===403);
+  assert((await browserHandler(request({action:'load',setId:bank.id,browserSession:'bad'}))).status===401);
+  const event={requestId:crypto.randomUUID(),sessionId:crypto.randomUUID(),itemId:'u2-079',version:bank.version,mode:'listen',answer:'wardrob',hinted:false};
+  const saved=await browserHandler(request({action:'attempt',setId:bank.id,browserSession:'a'.repeat(64),userId:999,event}));
+  assert(saved.status===200);assert((await saved.json()).event.owner===101);
+});

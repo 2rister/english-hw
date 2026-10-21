@@ -132,6 +132,12 @@ function VocabApp({ controller: c }) {
   if (s.error) return <><h1>Could not open Vocab Space</h1><p className="vocab-error" role="alert">{s.error}</p><button className="secondary" onClick={() => location.reload()}>Try again</button></>;
   return s.hash === "practice" ? <Practice controller={c} snapshot={s} /> : s.hash === "words" ? <Words controller={c} snapshot={s} /> : s.hash === "unit-2" ? <Home controller={c} snapshot={s} /> : <Library controller={c} />;
 }
-const controller = createVocabController({ tg: window.Telegram?.WebApp }), root = document.querySelector("#app");
+async function startApp() {
+  try { await window.TUTORING?.sessionReady; if (window.TUTORING?.preview) throw new Error('Vocab tutor preview is not available here. This view never opens a separate learner profile.'); }
+  catch (error) { const root=document.querySelector('#app'); root.setAttribute('role','alert'); root.textContent=error.message; return; }
+const controller = createVocabController({ tg: window.Telegram?.WebApp, tutoring: window.TUTORING }), root = document.querySelector("#app");
 root.dataset.renderer = "react";
 createRoot(root).render(<MotionConfig reducedMotion="user"><VocabApp controller={controller} /></MotionConfig>);
+
+}
+startApp();

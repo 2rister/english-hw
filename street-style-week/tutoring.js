@@ -108,7 +108,7 @@
     });
   }
   window.TUTORING = {
-    authenticated, gated, preview: previewRequested, previewToken, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
+    authenticated, browserCredential: () => browserSession, gated, preview: previewRequested, previewToken, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
     back(hash) {
       if (!authenticated) return;
       const inLesson = /^#(day|review|retry)-/.test(hash || '');

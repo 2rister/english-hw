@@ -13,10 +13,13 @@ function Response({ item, answer, disabled }) {
 }
 function GrammarPath({ s, open }) {
   const state=s.state, current=state.current, history=state.history||[], best=history.length?Math.max(...history.map(attempt=>attempt.score||0)):null;
+  const preview = Boolean(window.TUTORING?.preview), personal = Boolean(window.TUTORING?.authenticated) && !preview;
   const step=state.theoryDone?theory.length:Math.min(state.theoryStep||0,theory.length), passed=best!==null&&best>=90;
   return <section className="snack-card grammar-path" aria-label="Grammar learning path">
-    <p className="snack-kicker">Grammar Snack · Topic 01</p><h1>Present Simple<br/><span>vs Present Continuous</span></h1>
-    <p>Your learning path</p><progress aria-label="Topic stages completed" max="3" value={Number(state.theoryDone)+Number(history.length>0)+Number(passed)}/>
+    <p className="snack-kicker">{preview ? "Sonya’s profile · Read-only preview" : personal ? "Sonya’s profile" : "Device-only practice"} · Grammar Snack · Topic 01</p><h1>Present Simple<br/><span>vs Present Continuous</span></h1>
+    {!personal&&!preview&&<aside className="privacy-note" aria-label="Practice profile"><div><strong>Practice on this device</strong><p>This map shows this browser’s progress. It is not Sonya’s personal saved progress.</p><a href="../tutoring/#catalog">Connect Sonya’s profile: browser and Telegram instructions →</a></div></aside>}
+    {preview&&<p className="preview-note">Read-only preview. Answers here do not change Sonya’s saved progress.</p>}
+    <p>{personal ? "Sonya’s learning path" : preview ? "Learning path preview" : "This device’s learning path"}</p><progress aria-label="Topic stages completed" max="3" value={Number(state.theoryDone)+Number(history.length>0)+Number(passed)}/>
     <ol className="grammar-stages">
       <li data-status={state.theoryDone?'done':'current'}><span className="snack-kicker">01 · {state.theoryDone?'Completed':'Available now'}</span><h2>Learn the rules</h2><p>{step} of {theory.length} quick checks completed</p>
         <ol className="grammar-checks">{theory.map((item,index)=><li key={item.title}><span>{item.title}</span><strong>{index<step?'Done':index===step?'Next':'Locked'}</strong></li>)}</ol>

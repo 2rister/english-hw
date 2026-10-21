@@ -6,6 +6,7 @@ export type Dependencies = {
   botToken: string;
   allowedIds: Set<number>;
   origin: string;
+  verifyBrowser?: (session: string) => Promise<number>;
   load: (telegramId: number) => Promise<unknown>;
   save: (telegramId: number, event: Record<string, unknown>) => Promise<unknown>;
 };
@@ -25,16 +26,21 @@ export function createHandler(deps: Dependencies) {
       const raw = await request.text();
       if (raw.length > 16000) return reply(413, { error: 'Request is too large' });
       const payload = JSON.parse(raw);
-      const verified = await verifyTelegramInitData(payload.initData, deps.botToken);
+      const userId = payload.initData
+        ? (await verifyTelegramInitData(payload.initData, deps.botToken)).user.id
+        : typeof payload.browserSession === 'string' && /^[a-f0-9]{64}$/.test(payload.browserSession) && deps.verifyBrowser
+          ? await deps.verifyBrowser(payload.browserSession)
+          : (() => { throw new Error('Connect your personal learning profile first'); })();
+      if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error('Browser identity could not be verified');
       authenticated = true;
-      if (!deps.allowedIds.has(verified.user.id)) return reply(403, { error: 'This learning space is not assigned to this account' });
+      if (!deps.allowedIds.has(userId)) return reply(403, { error: 'This learning space is not assigned to this account' });
       if (payload.setId !== bank.id) return reply(400, { error: 'Unknown set' });
-      if (payload.action === 'load') return reply(200, { ok: true, events: await deps.load(verified.user.id) });
+      if (payload.action === 'load') return reply(200, { ok: true, events: await deps.load(userId) });
       if (payload.action !== 'attempt') return reply(400, { error: 'Unknown action' });
       const event = validateEvent(bank, payload.event);
       const sessionId = payload.event.sessionId;
       if (typeof sessionId !== 'string' || !/^[0-9a-f-]{36}$/i.test(sessionId)) return reply(400, { error: 'Invalid session ID' });
-      const saved = await deps.save(verified.user.id, { ...event, sessionId });
+      const saved = await deps.save(userId, { ...event, sessionId });
       return reply(200, { ok: true, event: saved });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Request failed';

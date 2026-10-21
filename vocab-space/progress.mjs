@@ -58,7 +58,7 @@ export function createCommitter(state, store) {
   };
 }
 
-export function createSync({ endpoint, initData, bank, state, commit, notify, request = fetch }) {
+export function createSync({ endpoint, initData, browserSession, bank, state, commit, notify, request = fetch }) {
   let active;
   async function call(action, event) {
     const controller = new AbortController();
@@ -66,7 +66,7 @@ export function createSync({ endpoint, initData, bank, state, commit, notify, re
     try {
     const response = await request(endpoint, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action, setId: bank.id, initData, event }),
+      body: JSON.stringify({ action, setId: bank.id, initData, browserSession, event }),
       signal: controller.signal,
     });
     const data = await response.json();
@@ -75,7 +75,7 @@ export function createSync({ endpoint, initData, bank, state, commit, notify, re
     } finally { clearTimeout(timeout); }
   }
   async function flush() {
-    if (!endpoint || !initData) {
+    if (!endpoint || (!initData && !browserSession)) {
       notify(endpoint ? 'Preview: results stay on this device only.' : 'Server not connected · results saved on this device.', false);
       return;
     }
