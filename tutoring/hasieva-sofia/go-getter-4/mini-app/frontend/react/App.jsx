@@ -1,3 +1,4 @@
+import { mountEntrySync } from './entry-sync.mjs';
 import SuccessCelebration from './SuccessCelebration.jsx';
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { assetURL, mountCatalogMiso, mountHalloweenBoot } from "./mascot.js";
@@ -175,8 +176,8 @@ function App({ controller: c }) {
   const s = useSyncExternalStore(c.subscribe, c.getSnapshot);
   useEffect(() => {
     mountHalloweenBoot();
-    c.start();
-    return () => c.dispose();
+    const stopSync = mountEntrySync({controller:c,tutoring:c.tutoring,storage:localStorage});
+    return () => { stopSync(); c.dispose(); };
   }, [c]);
   useEffect(() => {
     document.querySelector("#xpValue").textContent = s.state.xp || 0;

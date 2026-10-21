@@ -7,17 +7,21 @@ import { parseBank, choices, matches } from "./grammar-data.mjs";
 const require2 = createRequire(import.meta.url), { createRevisionedSaveQueue, mergeGrammarState } = require2("../../../../../../grammar-snack-01/revisioned-save-queue.js");
 const bank = readFileSync(new URL("../../../grammar-snack-01/CONTENT_BANK.md", import.meta.url), "utf8");
 const settle = () => new Promise((resolve) => setImmediate(resolve));
-function setup({ authenticated = false, preview = false, remote = {}, saved = true } = {}) {
-  const stored = /* @__PURE__ */ new Map(), calls = [], timers = /* @__PURE__ */ new Map(), statuses = [];
+function setup({ authenticated = false, preview = false, remote = {}, saved = true, initial = {}, call } = {}) {
+  const stored = new Map(Object.entries(initial)), calls = [], timers = /* @__PURE__ */ new Map(), statuses = [];
   let counter = 0, writes = 0;
   const storage = { getItem: (k) => stored.get(k) || null, setItem(k, v) {
     writes++;
     stored.set(k, v);
-  } };
+  }, removeItem: key => stored.delete(key) };
+  let server = remote, serverRevision = 1;
   const tutoring = { authenticated, preview, userId: 123, saving() {
   }, setStatus: (status) => statuses.push(status), async call(action, ...args) {
     calls.push(action);
-    return action === "save" ? { saved, revision: 2 } : { revision: 1, state: remote };
+    if (call) return call(action, ...args);
+    if (action === "deviceDump") return {saved: args[3].length};
+    if (action === "save") { if(saved) { server=structuredClone(args[0]);serverRevision++; } return {saved,revision:serverRevision}; }
+    return {revision:serverRevision,state:server};
   } };
   const clock = { setTimeout(fn) {
     const id = ++counter;
@@ -148,4 +152,61 @@ test("restored legacy mission retains completed theory, sector position and orig
   assert.equal(state.current.answers[0].firstTry,false);
   assert.deepEqual(state.current.answers[0].wrong,["previous rejected input"]);
   assert.equal(state.history.length,0);x.c.dispose();
+});
+
+test("entry uploads theory and completed history without a current mission, then confirms read-back", async()=>{
+  const key='grammar-snack-01-v1:123', local={kind:'grammar-snack-01',theoryStep:5,theoryDone:true,current:null,history:[{id:'synthetic-history',score:85}],variantIndex:1};
+  const x=setup({authenticated:true,initial:{[key]:JSON.stringify(local),'grammar-snack-01-v1':JSON.stringify({theoryStep:1})}});
+  assert.equal(await x.c.boot(),true);
+  assert.deepEqual(x.calls,['deviceDump','load','save','load']);
+  assert.equal(x.c.getSnapshot().state.history[0].id,'synthetic-history');
+  assert.equal(x.stored.has(key+':pending'),false);x.c.dispose();
+});
+
+test("failed startup load preserves raw local state and automatically retries before merge",async()=>{
+  const key='grammar-snack-01-v1:123', local=JSON.stringify({theoryDone:true,theoryStep:5,current:null,history:[]});
+  let offline=true, remote={}, revision=1;
+  const x=setup({authenticated:true,initial:{[key]:local},call:async(action,...args)=>{
+    if(action==='deviceDump')return {saved:args[3].length};
+    if(offline)throw Error('Synthetic load offline');
+    if(action==='save'){remote=structuredClone(args[0]);return {saved:true,revision:++revision};}
+    return {state:remote,revision};
+  }});
+  assert.equal(await x.c.boot(),false);assert.equal(x.stored.get(key),local);
+  offline=false;x.tick();await settle();await settle();
+  assert.equal(x.c.getSnapshot().error,'');assert.equal(remote.theoryDone,true);
+  assert.equal(x.stored.has(key+':pending'),false);x.c.dispose();
+});
+
+test("failed grammar save survives reload and never confirms a missing read-back",async()=>{
+  const key='grammar-snack-01-v1:123', initial={[key]:JSON.stringify({theoryDone:true,theoryStep:5,current:null,history:[]})};
+  const failed=setup({authenticated:true,initial,saved:false});
+  assert.equal(await failed.c.boot(),false);assert.equal(failed.stored.get(key+':pending'),'1');
+  failed.c.dispose();
+  const recovered=setup({authenticated:true,initial:Object.fromEntries(failed.stored)});
+  assert.equal(await recovered.c.boot(),true);assert.equal(recovered.stored.has(key+':pending'),false);recovered.c.dispose();
+  const stale=setup({authenticated:true,initial,call:async(action,...args)=> action==='deviceDump'?{saved:args[3].length}:action==='save'?{saved:true,revision:2}:{state:{},revision:1}});
+  assert.equal(await stale.c.boot(),false);assert.match(stale.c.getSnapshot().error,/read-back/);
+  assert(!stale.statuses.some(status=>status.startsWith('Saved ·')));stale.c.dispose();
+});
+
+test("large scoped device backup is losslessly chunked under the existing server limit", async()=>{
+  const {backupDeviceState}=await import('./device-backup.mjs');
+  const values={'grammar-snack-01-v1:123':JSON.stringify({answers:Array(2000).fill('synthetic "answer" with a newline\n')})},sent=[];
+  await backupDeviceState({call:async(action,a,b,unit,dump)=>{assert.equal(action,'deviceDump');assert.equal(unit,'grammar-snack-01');assert(dump.length<=45000);sent.push(dump);return {saved:dump.length};}},'grammar-snack-01',values);
+  assert(sent.length>1);
+  const chunks=sent.map(value=>JSON.parse(value));
+  assert.equal(new Set(chunks.map(chunk=>chunk.captureId)).size,1);
+  assert.deepEqual(JSON.parse(chunks.map(chunk=>chunk.data).join('')),values);
+});
+
+test("grammar read-back with the same IDs but lost wrong-answer evidence remains pending",async()=>{
+ const key='grammar-snack-01-v1:123', local={current:{id:'synthetic-partial',variantId:'01',index:1,answers:[{id:'1',correct:true,firstTry:false,wrong:['synthetic wrong']}],errorEvents:[{id:'error1',wrong:'synthetic wrong'}]},history:[]};
+ let server={},revision=1;
+ const x=setup({authenticated:true,initial:{[key]:JSON.stringify(local)},call:async(action,...args)=>{
+  if(action==='deviceDump')return {saved:args[3].length};
+  if(action==='save'){server=structuredClone(args[0]);server.current.answers[0].wrong=[];return {saved:true,revision:++revision};}
+  return {state:server,revision};
+ }});
+ assert.equal(await x.c.boot(),false);assert.equal(x.stored.get(key+':pending'),'1');assert.match(x.c.getSnapshot().error,/read-back/);x.c.dispose();
 });

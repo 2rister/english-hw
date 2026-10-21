@@ -11,11 +11,15 @@ function setup({ authenticated = false, preview = false, stored = {}, call } = {
     map.set(key, v);
   }, removeItem: (key) => map.delete(key) };
   const location = { hash: "#day-1", catalogStart: false };
+  let server = { xp:20,days:{},badges:[] }, serverRevision = 1;
   const tutoring = { authenticated, userId: 123, preview, previewToken: preview ? "synthetic-preview" : null, units: [], saving() {
   }, setStatus: (t) => statuses.push(t), back() {
   }, async call(...args) {
     calls.push(args);
-    return call ? call(...args) : args[0] === "save" ? { saved: true, revision: 2 } : { revision: 1, state: { xp: 20, days: {}, badges: [] } };
+    if(args[0]==="deviceDump") return {saved:args[4].length};
+    if(call) return call(...args);
+    if(args[0]==="save") {server=structuredClone(args[1]);serverRevision++;return {saved:true,revision:serverRevision};}
+    return {revision:serverRevision,state:server};
   } };
   const clock = { setTimeout(fn, ms) {
     const id = ++next;
@@ -76,7 +80,7 @@ test("preview remains read-only across answers, drafts, sync and online events",
 });
 test("server conflict merges old completed history; acknowledged save clears only its pending marker", async () => {
   let saves = 0;
-  const x = setup({ authenticated: true, stored: { "unrelated-homework": "private-other-app" }, call: async (action) => action === "save" ? ++saves === 1 ? { conflict: true } : { saved: true, revision: 4 } : action === "load" ? { revision: 3, state: { xp: 100, days: { day1: { complete: true, score: 100, index: 3, answers: [], runs: [{ at: "synthetic", score: 100 }] } }, badges: ["one"] } } : {} });
+  const x = setup({ authenticated: true, stored: { "unrelated-homework": "private-other-app" }, call: async (action) => action === "save" ? ++saves === 1 ? { conflict: true } : { saved: true, revision: 4 } : action === "load" ? { revision: saves >= 2 ? 4 : 3, state: { xp: 100, days: { day1: { complete: true, score: 100, index: 3, answers: [], runs: [{ at: "synthetic", score: 100 }] } }, badges: ["one"] } } : {} });
   await x.c.start();
   await x.c.syncProgress();
   await x.c.syncProgress();
@@ -113,4 +117,44 @@ test("duplicate correct clicks cannot increase XP or advance a question twice", 
   x.c.advance();
   assert.equal(x.c.getSnapshot().session.index, 1);
   x.c.dispose();
+});
+
+test("Street entry uploads local completed results and excludes anonymous practice", async()=>{
+ const key='street-style-quest-v1:123', local={xp:25,days:{day1:{complete:true,index:3,answers:[],runs:[{at:'synthetic-local',score:80}]}},badges:['one']};
+ const x=setup({authenticated:true,stored:{[key]:JSON.stringify(local),'street-style-quest-v1':'anonymous-qa'}});
+ assert.equal(await x.c.start(),true);
+ assert.equal(x.calls[0][0],'deviceDump');assert(!x.calls[0][4].includes('anonymous-qa'));
+ assert.deepEqual(x.calls.map(call=>call[0]),['deviceDump','load','save','load']);
+ assert.equal(x.c.getSnapshot().state.days.day1.runs[0].at,'synthetic-local');x.c.dispose();
+});
+
+test("Street startup load failure retains local results and retries on reconnection",async()=>{
+ const key='street-style-quest-v1:123', raw=JSON.stringify({xp:20,days:{day1:{index:1,answers:[{q:'Where?',correct:true}]}},badges:[]});
+ let offline=true, server={},revision=1;
+ const x=setup({authenticated:true,stored:{[key]:raw},call:async(action,state)=>{
+   if(offline)throw Error('Synthetic load offline');
+   if(action==='save'){server=structuredClone(state);return {saved:true,revision:++revision};}
+   return {state:server,revision};
+ }});
+ await x.c.start();assert.equal(x.c.getSnapshot().restored,false);assert.equal(x.map.get(key),raw);
+ assert([...x.timers.values()].some(timer=>timer.ms===15000));
+ offline=false;assert.equal(await x.c.syncProgress(),true);
+ assert.equal(server.days.day1.answers[0].q,'Where?');x.c.dispose();
+});
+
+test("Street save acknowledgement without read-back never clears its pending marker",async()=>{
+ const x=setup({authenticated:true,call:async(action)=>action==='save'?{saved:true,revision:2}:{state:{days:{}},revision:1}});
+ assert.equal(await x.c.start(),false);
+ assert.equal(x.map.get(x.c.key+':pending'),'1');assert(x.statuses.some(status=>status.includes('read-back')));
+ assert(!x.statuses.includes('Progress saved.'));x.c.dispose();
+});
+
+test("Street same-ID read-back losing writing or wrong-answer evidence remains pending",async()=>{
+ const key='street-style-quest-v1:123', local={days:{day1:{index:1,answers:[{q:'Where?',correct:true,firstTry:false,wrong:['table']},{q:'Write',text:'Synthetic writing'}],drafts:{1:'Synthetic writing'}}}};
+ let server={},revision=1;
+ const x=setup({authenticated:true,stored:{[key]:JSON.stringify(local)},call:async(action,state)=>{
+  if(action==='save'){server=structuredClone(state);server.days.day1.answers[0].wrong=[];server.days.day1.drafts={};return {saved:true,revision:++revision};}
+  return {state:server,revision};
+ }});
+ assert.equal(await x.c.start(),false);assert.equal(x.map.get(key+':pending'),'1');assert(x.statuses.some(status=>status.includes('read-back')));x.c.dispose();
 });
