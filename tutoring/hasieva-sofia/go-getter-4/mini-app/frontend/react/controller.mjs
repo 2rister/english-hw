@@ -1,3 +1,4 @@
+import { backupDeviceState } from "./device-backup.mjs";
 import { freshState, normalise, mergeProgress, buildItems } from "./progress.mjs";
 function createQuestController({ data, tutoring, storage, location, events, clock = globalThis }) {
   const key = "street-style-quest-v1" + (tutoring?.authenticated ? ":" + tutoring.userId : "");
@@ -63,6 +64,7 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
     emit();
   }
   async function syncProgress() {
+    if (!restored && tutoring?.authenticated && !preview) return restore();
     if (disposed || syncing || !syncPending || !restored || preview) return;
     syncing = true;
     syncPending = false;
@@ -71,7 +73,8 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
     completion = { text: "Saving your result to your tutor…", ready: false };
     emit();
     try {
-      const result = await tutoring.call("save", JSON.parse(JSON.stringify(state)), revision);
+      const sent = JSON.parse(JSON.stringify(state));
+      const result = await tutoring.call("save", sent, revision);
       if (disposed) return;
       if (result.conflict) {
         const latest = await tutoring.call("load");
@@ -84,6 +87,17 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
         return;
       }
       if (!result.saved) throw Error("Progress could not be saved.");
+      const confirmed = await tutoring.call("load");
+      if (!confirmed.state || Number(confirmed.revision) < Number(result.revision) || Object.entries(sent.days || {}).some(([id, day]) => {
+        const saved = confirmed.state.days?.[id];
+        return !saved || (day.complete && !saved.complete) || Number(saved.index || 0) < Number(day.index || 0) ||
+          Object.entries(day.drafts || {}).some(([index, text]) => saved.drafts?.[index] !== text) ||
+          (day.answers || []).some(answer => {
+            const row = (saved.answers || []).find(other => other.q === answer.q);
+            return !row || (answer.correct && !row.correct) || (answer.firstTry === false && row.firstTry !== false) ||
+              (answer.text && row.text !== answer.text) || (answer.wrong || []).some(value => !(row.wrong || []).includes(value));
+          }) || (day.runs || []).some(run => !(saved.runs || []).some(other => other.at === run.at && other.score === run.score));
+      })) throw Error("Save received, but progress read-back is not confirmed.");
       revision = result.revision;
       backoff = 0;
       write(key + ":revision", String(revision));
@@ -97,6 +111,7 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
       status(text);
       tutoring.saving("done");
       completion = { text, ready: true };
+      return true;
     } catch (error) {
       if (!disposed) {
         syncPending = true;
@@ -104,6 +119,7 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
         tutoring.saving("error");
         completion = { text: "Saved on this device. Keep the app open to retry.", ready: true };
       }
+      return false;
     } finally {
       const urgent = syncUrgent;
       syncUrgent = false;
@@ -162,13 +178,15 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
     events.addEventListener("hashchange", route);
     events.addEventListener("online", online);
     route();
-    if (tutoring?.authenticated && !preview) {
-      const dump = Object.fromEntries([key, key + ":pending", key + ":revision"].map((k) => [k, read(k)]).filter(([, v]) => v !== null));
-      tutoring.call("deviceDump", null, null, null, JSON.stringify(dump)).catch(() => {
-      });
-    }
+    return restore();
+  }
+  async function restore() {
+    if (disposed) return false;
     if (tutoring?.authenticated || preview) {
       try {
+        if (!preview) {
+          await backupDeviceState(tutoring, "street-style", Object.fromEntries([key, key + ":pending", key + ":revision"].map(k => [k, read(k)]).filter(([, v]) => v !== null)));
+        }
         const result = await tutoring.call(preview ? "preview" : "load");
         if (disposed) return;
         revision = result.revision;
@@ -191,16 +209,21 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
           status("Progress merged. Saving your latest answer…");
         }
         save();
+        const confirmed = await syncProgress();
         if (result.recovered) status(`Progress restored from your history (${result.recovered} days).`);
-        else if (!unconfirmed) status("Progress connected.");
+        else if (!unconfirmed && confirmed) status("Progress connected.");
+        route();
+        return confirmed;
       } catch (error) {
         if (disposed) return;
         if (preview) {
           restored = false;
           status("Preview could not reach the tutor sheet. Reopen the link from Telegram or refresh.");
         } else {
-          restored = true;
+          restored = false;
           syncPending = read(key) !== null;
+          clock.clearTimeout(timer);
+          timer = clock.setTimeout(restore, 15000);
           status(error.message + " You can keep working; it syncs when the connection returns.");
         }
       }
@@ -298,6 +321,7 @@ function createQuestController({ data, tutoring, storage, location, events, cloc
     save(true);
   }
   function online() {
+    if (!restored && tutoring?.authenticated && !preview) { restore(); return; }
     if (restored && tutoring?.authenticated && !preview) {
       syncPending = true;
       syncProgress();

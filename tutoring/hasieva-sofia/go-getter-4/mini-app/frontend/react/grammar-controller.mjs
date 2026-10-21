@@ -1,3 +1,4 @@
+import { backupDeviceState } from "./device-backup.mjs";
 import { parseBank, theory, matches, strip } from "./grammar-data.mjs";
 function createGrammarController({ tutoring, storage, request, createQueue, mergeState, clock = globalThis }) {
   const unit = "grammar-snack-01", key = unit + "-v1" + (tutoring?.authenticated ? ":" + tutoring.userId : "");
@@ -8,7 +9,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
   } catch {
     state = fresh();
   }
-  let revision = 0, variants = [], error = "", loading = true, feedback = null, advancing = false, shown = state.current?.index || 0, theoryIndex = Math.min(state.theoryStep || 0, theory.length), timer, disposed = false;
+  let revision = 0, variants = [], error = "", loading = true, feedback = null, advancing = false, shown = state.current?.index || 0, theoryIndex = Math.min(state.theoryStep || 0, theory.length), timer, retryTimer, restored = !tutoring?.authenticated, disposed = false;
   const listeners = /* @__PURE__ */ new Set();
   let snapshot;
   function emit() {
@@ -16,6 +17,10 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
       snapshot = { state, variants, error, loading, feedback, advancing, shown, theoryIndex, preview };
       listeners.forEach((fn) => fn());
     }
+  }
+  function retry(fn) {
+    clock.clearTimeout(retryTimer);
+    if (!disposed && tutoring?.authenticated && !preview) retryTimer = clock.setTimeout(fn, 15000);
   }
   function recover(cause) {
     error = cause.message || String(cause);
@@ -47,21 +52,40 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
     async save(snapshot2, expected) {
       const result = await tutoring.call("save", snapshot2, expected, unit);
       if (!result.saved && !result.conflict) throw Error("The server has not confirmed this save.");
+      if (result.saved) {
+        const confirmed = await tutoring.call("load", null, null, unit);
+        if (Number(confirmed.revision) < Number(result.revision) || !confirmed.state ||
+          (snapshot2.history || []).some(attempt => !(confirmed.state.history || []).some(other => other.id === attempt.id && other.score === attempt.score)) ||
+          (snapshot2.theoryDone && !confirmed.state.theoryDone) ||
+          Number(confirmed.state.theoryStep || 0) < Number(snapshot2.theoryStep || 0) ||
+          (snapshot2.current && (confirmed.state.current?.id !== snapshot2.current.id ||
+            (snapshot2.current.complete && (!confirmed.state.current.complete || confirmed.state.current.score !== snapshot2.current.score)) ||
+            (snapshot2.current.errorEvents || []).some(event => !(confirmed.state.current.errorEvents || []).some(other => other.id === event.id && other.wrong === event.wrong)) ||
+            Number(confirmed.state.current.index || 0) < Number(snapshot2.current.index || 0) ||
+            (snapshot2.current.answers || []).some(answer => {
+              const row = (confirmed.state.current.answers || []).find(other => other.id === answer.id);
+              return !row || (answer.correct && !row.correct) || (answer.firstTry === false && row.firstTry !== false) || (answer.wrong || []).some(value => !(row.wrong || []).includes(value));
+            })))) throw Error("Save received, but progress read-back is not confirmed.");
+      }
       return result;
     },
     load: () => tutoring.call("load", null, null, unit),
     mergeState: merge,
     onSaved(result) {
       error = "";
+      clock.clearTimeout(retryTimer);
+      try { storage.removeItem(key + ":pending"); } catch {}
       tutoring.saving("done");
       tutoring.setStatus(result.delivery === "pending" ? "Saved · tutor report is retrying." : "Saved · tutor report updated.");
       emit();
     },
-    onError: recover
+    onError(cause) { recover(cause); retry(save); }
   });
   function save() {
     persist();
-    if (preview || !tutoring?.authenticated || !state.current) return Promise.resolve();
+    if (preview || !tutoring?.authenticated) return Promise.resolve();
+    try { storage.setItem(key + ":pending", "1"); } catch {}
+    if (!restored) { retry(boot); return Promise.resolve(); }
     tutoring.saving("queued");
     return queue.enqueue().catch((cause) => ({ saved: false, error: cause }));
   }
@@ -79,6 +103,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
   async function boot() {
     if (tutoring?.gated) return;
     loading = true;
+    error = "";
     emit();
     try {
       const response = await request("../tutoring/hasieva-sofia/go-getter-4/grammar-snack-01/CONTENT_BANK.md");
@@ -86,22 +111,28 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
       variants = parseBank(await response.text());
       if (variants.length !== 10) throw Error("The practice bank is unavailable.");
       if (tutoring?.authenticated || preview) {
+        if (!preview) {
+          const raw = storage.getItem(key);
+          await backupDeviceState(tutoring, unit, raw === null ? {} : { [key]: raw });
+        }
         const loaded = await tutoring.call(preview ? "preview" : "load", null, null, unit);
         if (disposed) return;
         revision = loaded.revision;
+        restored = true;
         merge(loaded.state);
         await save();
       }
       shown = state.current?.index || 0;
       theoryIndex = Math.min(state.theoryStep || 0, theory.length);
       if (state.current?.index === 20 && !state.current.complete) finish();
-      error = "";
     } catch (cause) {
       recover(cause);
+      retry(boot);
     } finally {
       loading = false;
       emit();
     }
+    return !error;
   }
   function startAttempt() {
     if (!variants.length || advancing) return;
@@ -181,6 +212,7 @@ function createGrammarController({ tutoring, storage, request, createQueue, merg
   function dispose() {
     disposed = true;
     clock.clearTimeout(timer);
+    clock.clearTimeout(retryTimer);
     listeners.clear();
   }
   emit();

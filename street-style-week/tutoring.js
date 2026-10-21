@@ -39,7 +39,7 @@
   statusRow.className = 'sync-row';
   statusRow.append(status);
   document.querySelector('.topbar').after(statusRow);
-  const setStatus = text => { status.textContent = text; };
+  const setStatus = text => { status.textContent = window.TUTORING?.entrySyncPending && /^(Progress (saved|confirmed|connected)|Saved [·—]|All saved)/i.test(text) ? 'Saved on this device · some results are still waiting to sync.' : text; };
   // One save bar for every write to the private sheet. It reports the real lifecycle — queued, sent
   // (creeping while the bridge answers), confirmed, failed — and never invents progress it has not
   // reached. It is drawn on the status row's own bottom edge, so showing it never shifts the layout.
@@ -108,7 +108,7 @@
     });
   }
   window.TUTORING = {
-    authenticated, browserCredential: () => browserSession, gated, preview: previewRequested, previewToken, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
+    authenticated, initData: tg?.initData, browserCredential: () => browserSession, gated, preview: previewRequested, previewToken, userId: tg?.initDataUnsafe?.user?.id, call, setStatus, saving,
     back(hash) {
       if (!authenticated) return;
       const inLesson = /^#(day|review|retry)-/.test(hash || '');
