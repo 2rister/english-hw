@@ -1,5 +1,11 @@
 # Backlog — Хасиева Софья · Go Getter 4 Mini App
 
+## Completed — 2026-10-25
+
+- [x] Add orange unfinished/red not-started buttons across personal tutoring, with text labels, neutral loading/error/locked states and unchanged completed styles.
+- [x] Check status boundaries and mobile workflows on synthetic profiles without external writes.
+- [ ] Confirm the published colours on the learner's physical iPhone in Telegram.
+
 ## Completed — 2026-10-11
 
 - [x] Replaced the native WebView blank-screen failure mode with compatibility fallbacks and visible recovery controls.

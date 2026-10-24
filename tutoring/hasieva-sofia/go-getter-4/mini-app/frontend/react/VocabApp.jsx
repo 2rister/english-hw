@@ -3,7 +3,8 @@ import SuccessCelebration from "./SuccessCelebration.jsx";
 import {roundOutcome} from "./block-result.mjs";
 import Answer from "./VocabAnswer.jsx";
 import {ActionButton, AudioControl, Reveal, ResultEntrance, MotionConfig} from "./VocabMotion.jsx";
-import { stories, storyParts, storyProgress } from "./story-practice.mjs";
+import { stories, storyParts, storyProgress, repairWords } from "./story-practice.mjs";
+import { taskStatus, vocabTaskStatus, vocabStatus, statusLabel } from './learning-status.mjs';
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createVocabController } from "./vocab-controller.mjs";
@@ -21,27 +22,33 @@ function AudioButton({ controller:c, snapshot:s, item, context=false, variant=0 
     play={()=>c.play(item,context,variant)} label="Listen"
     ariaLabel={context?"Listen to the sentence":"Listen to the word or phrase"} />;
 }
-function Library({ controller: c }) {
-  return <><Head title="Words that stay." copy="Listen. Recall. Write. Your space for words that stay with you."><div className="vocab-orbit">Aa</div></Head><button type="button" className="vocab-unit" onClick={() => c.go("unit-2")}><span className="vocab-unit-number">02</span><div><p className="vocab-eyebrow">GO GETTER 4 / UNIT 2</p><h2>Home &amp; Housework</h2><p>81 words and phrases · 3 days of practice · dictation and new contexts</p></div><span className="vocab-cta">Open →</span></button><p className="vocab-note">Models help you learn. Independent answers show what you remember.</p></>;
+function Library({ controller: c, snapshot: s }) {
+  const status = vocabStatus(s.state, !window.TUTORING?.authenticated || s.message.confirmed);
+  return <><Head title="Words that stay." copy="Listen. Recall. Write. Your space for words that stay with you."><div className="vocab-orbit">Aa</div></Head><button type="button" className="vocab-unit" data-learning-status={status} onClick={() => c.go("unit-2")}><span className="vocab-unit-number">02</span><div><p className="vocab-eyebrow">GO GETTER 4 / UNIT 2</p><h2>Home &amp; Housework</h2><p>81 words and phrases · 3 days of practice · dictation and new contexts</p></div><span className="vocab-cta">{statusLabel[status] || "Open"} →</span></button><p className="vocab-note">Models help you learn. Independent answers show what you remember.</p></>;
 }
 function Home({ controller:c, snapshot:s }) {
   const rounds=storyProgress(s.bank,s.state.events),independentUnlocked=rounds.some(round=>round.passed);
+  const known = !window.TUTORING?.authenticated || s.message.confirmed;
+  const story = taskStatus(rounds.every(round=>round.passed), s.state.session?.storyId || s.state.events.some(event=>event.mode==='exam'&&event.hinted), known);
+  const repair = repairWords(s.state.events).length ? 'in-progress' : undefined;
+  const independent = vocabTaskStatus(s.state, 'exam', 25, known, false);
+  const statuses = [vocabTaskStatus(s.state,'listen',81,known), vocabTaskStatus(s.state,'context',81,known), repair, vocabTaskStatus(s.state,'letters',81,known), vocabTaskStatus(s.state,'exam',81,known,false), vocabTaskStatus(s.state,'paper',9,known)];
   const stats = summary(s.bank, s.state.events), options = [["Listen and write", stats.checked < 81 ? "Try the next unchecked words. No translation before you answer." : "A short mixed round, starting with difficult words.", () => c.start("listen", true)], ["Words in context", "Listen to new sentences and write the complete missing word or phrase.", () => c.start("context")], ["My difficult words", stats.weak ? `${stats.weak} words were incorrect in your latest independent attempt.` : "Practise the spelling. Remember every word in a phrase.", () => c.start("listen")], ["Build the spelling", "Complete the missing letters. This is supported practice, not an independent check.", () => c.start("letters")], ["Dictation · all 81", "Random order. No hints. Check your answers after the final word.", () => c.start("exam")], ["Paper dictation", "Take a blank sheet. Listen to 9 words or phrases, then check your own work.", () => c.start("paper")]];
   return <><button className="back-button" onClick={()=>c.go("")}>← All sets</button>
     <Head title="Home & Housework" copy="Practise spelling, one short round at a time." compact />
-    {s.state.session && <ActionButton className="vocab-resume" onClick={()=>c.go("practice")}>Resume your exercise →</ActionButton>}
+    {s.state.session && <ActionButton className="vocab-resume" data-learning-status="in-progress" onClick={()=>c.go("practice")}>Resume your exercise →</ActionButton>}
     <section className="story-plan" aria-labelledby="storyPlanTitle">
       <h2 id="storyPlanTitle">25-word story practice</h2>
       <p className="story-plan-copy">Listen and fill 25 gaps. First letters help you learn.</p>
       <div className="vocab-actions">
-        <ActionButton className="vocab-action is-main" disabled={s.saving} onClick={()=>c.start("exam",false,{story:true})}><strong>1 · Story gaps · 25</strong><span>{rounds.filter(round=>round.passed).length} / {rounds.length} stories cleared · reach 85% to open the next.</span></ActionButton>
-        <ActionButton className="vocab-action" disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}><strong>2 · Repair my spellings</strong><span>Recall difficult words without a model.</span></ActionButton>
-        <ActionButton className="vocab-action" disabled={s.saving||!independentUnlocked} onClick={()=>c.start("exam",false,{limit:25})}><strong>3 · Independent check · 25</strong><span>{independentUnlocked?"No first letters, hints or word list.":"Locked · reach 85% in a story first."}</span></ActionButton>
+        <ActionButton className="vocab-action is-main" data-learning-status={story} disabled={s.saving} onClick={()=>c.start("exam",false,{story:true})}><strong>1 · Story gaps · 25</strong>{statusLabel[story]&&<span className="learning-status-label">{statusLabel[story]}</span>}<span>{rounds.filter(round=>round.passed).length} / {rounds.length} stories cleared · reach 85% to open the next.</span></ActionButton>
+        <ActionButton className="vocab-action" data-learning-status={repair} disabled={s.saving} onClick={()=>c.start("listen",false,{repair:true})}><strong>2 · Repair my spellings</strong>{statusLabel[repair]&&<span className="learning-status-label">{statusLabel[repair]}</span>}<span>Recall difficult words without a model.</span></ActionButton>
+        <ActionButton className="vocab-action" data-learning-status={independentUnlocked ? independent : undefined} disabled={s.saving||!independentUnlocked} onClick={()=>c.start("exam",false,{limit:25})}><strong>3 · Independent check · 25</strong>{independentUnlocked&&statusLabel[independent]&&<span className="learning-status-label">{statusLabel[independent]}</span>}<span>{independentUnlocked?"No first letters, hints or word list.":"Locked · reach 85% in a story first."}</span></ActionButton>
       </div>
       <p className="vocab-note">Story → repair → a 10–20 minute break → independent check. Aim for 25/25 twice, with a break between rounds.</p>
     </section>
     <Reveal label="My progress"><section className="vocab-stats">{[[stats.checked+"/81","checked by listening"],[stats.written+"/81","latest answer correct"],[stats.context+"/81","correct in context"],[stats.retained+"/81","confirmed on different days"]].map(([value,label])=><div className="vocab-stat" key={label}><strong>{value}</strong><span>{label}</span></div>)}</section><p className="vocab-note">First-letter practice and answers with hints do not raise independent scores. Confirmation on different days does not yet measure long-term retention.</p></Reveal>
-    <Reveal label="More practice"><nav className="vocab-days" aria-label="Practice focus">{["1 · Discover","2 · Practise","3 · Check"].map((label,index)=><ActionButton key={label} className="secondary" aria-pressed={s.state.day===index+1} disabled={s.saving} onClick={()=>c.day(index+1)}>{label}</ActionButton>)}</nav><p className="vocab-day-note">{dayNotes[s.state.day-1]}</p><div className="vocab-actions">{options.map(([title,copy,action])=><ActionButton key={title} className="vocab-action" disabled={s.saving} onClick={action}><strong>{title}</strong><span>{copy}</span></ActionButton>)}</div><ActionButton className="secondary" onClick={()=>c.go("words")}>My 81 words →</ActionButton><p className="vocab-note">Four practice stories cover all 81 words and phrases. Work in short rounds and take breaks.</p></Reveal>
+    <Reveal label="More practice"><nav className="vocab-days" aria-label="Practice focus">{["1 · Discover","2 · Practise","3 · Check"].map((label,index)=><ActionButton key={label} className="secondary" aria-pressed={s.state.day===index+1} disabled={s.saving} onClick={()=>c.day(index+1)}>{label}</ActionButton>)}</nav><p className="vocab-day-note">{dayNotes[s.state.day-1]}</p><div className="vocab-actions">{options.map(([title,copy,action],index)=><ActionButton key={title} className="vocab-action" data-learning-status={statuses[index]} disabled={s.saving} onClick={action}><strong>{title}</strong><span>{copy}</span>{statusLabel[statuses[index]]&&<span className="learning-status-label">{statusLabel[statuses[index]]}</span>}</ActionButton>)}</div><ActionButton className="secondary" onClick={()=>c.go("words")}>My 81 words →</ActionButton><p className="vocab-note">Four practice stories cover all 81 words and phrases. Work in short rounds and take breaks.</p></Reveal>
   </>;
 }
 function StoryParagraph({ parts, session }) {
@@ -130,7 +137,7 @@ function VocabApp({ controller: c }) {
   }, [s.hash]);
   if (s.loading) return <Head title="Vocab Space" copy="Loading your words and saved progress…" />;
   if (s.error) return <><h1>Could not open Vocab Space</h1><p className="vocab-error" role="alert">{s.error}</p><button className="secondary" onClick={() => location.reload()}>Try again</button></>;
-  return s.hash === "practice" ? <Practice controller={c} snapshot={s} /> : s.hash === "words" ? <Words controller={c} snapshot={s} /> : s.hash === "unit-2" ? <Home controller={c} snapshot={s} /> : <Library controller={c} />;
+  return s.hash === "practice" ? <Practice controller={c} snapshot={s} /> : s.hash === "words" ? <Words controller={c} snapshot={s} /> : s.hash === "unit-2" ? <Home controller={c} snapshot={s} /> : <Library controller={c} snapshot={s} />;
 }
 async function startApp() {
   try { await window.TUTORING?.sessionReady; if (window.TUTORING?.preview) throw new Error('Vocab tutor preview is not available here. This view never opens a separate learner profile.'); }

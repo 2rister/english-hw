@@ -3,6 +3,8 @@ import SuccessCelebration from './SuccessCelebration.jsx';
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { assetURL, mountCatalogMiso, mountHalloweenBoot } from "./mascot.js";
 import { daySeen, weeklyItems, reviewErrors } from "./progress.mjs";
+import { dayStatus, grammarStatus, vocabStatus, taskStatus, statusLabel } from './learning-status.mjs';
+import { openStore } from './vocab-ports.mjs';
 const go = (hash) => {
   location.hash = hash;
 };
@@ -34,8 +36,27 @@ function CopyButton({ text, id, children = "Copy link" }) {
 }
 function Catalog({ controller: c, snapshot: s }) {
   const miso = useRef(null);
+  const [modules, setModules] = useState({});
   const progress = weeklyItems(c.data, s.state, s.evidence);
   const personal = c.tutoring.authenticated && !s.preview;
+  useEffect(() => {
+    if (s.preview) return;
+    let disposed = false, latest = 0;
+    async function refresh() {
+      let store, revision = ++latest;
+      try {
+        const known = !personal || c.tutoring.entrySyncPending === false;
+        const grammar = JSON.parse(localStorage.getItem('grammar-snack-01-v1' + (personal ? ':' + c.tutoring.userId : '')) || '{}');
+        store = await openStore(personal ? `telegram:${c.tutoring.userId}` : 'preview');
+        const vocab = await store.load();
+        if (!disposed && revision === latest) setModules({ grammar: grammarStatus(grammar, known), vocab: vocabStatus(vocab, known) });
+      } catch { if (!disposed && revision === latest) setModules({}); }
+      finally { store?.close(); }
+    }
+    void refresh();
+    window.addEventListener('learning-progress-ready', refresh);
+    return () => { disposed = true; window.removeEventListener('learning-progress-ready', refresh); };
+  }, [c, personal, s.preview, s.restored]);
   useEffect(() => {
     mountCatalogMiso();
     const node = miso.current;
@@ -48,8 +69,9 @@ function Catalog({ controller: c, snapshot: s }) {
     <PreviewPanel snapshot={s} /><section aria-labelledby="unitsTitle"><div className="section-heading"><div><p className="section-note">Your collection</p><h2 id="unitsTitle">Learning units</h2></div></div><div id="unitGrid" className="unit-grid">
     {c.tutoring.units.map((unit, index) => {
     const waiting = c.tutoring.authenticated && !s.restored && !unit.independent && !s.preview;
+    const status = !unit.available || waiting ? undefined : unit.id === 'street-style' ? taskStatus(c.data.days.every(day => s.state.days[day.id]?.complete), Object.values(s.state.days).some(day => dayStatus(day) !== 'not-started'), s.restored) : unit.id === 'grammar-snack-01' ? modules.grammar : unit.id === 'vocab-space' ? modules.vocab : undefined;
     const action = waiting ? "Connecting…" : unit.available ? unit.independent ? "Open →" : Object.values(s.state.days).some((day) => day.index || day.complete) ? "Continue →" : "Start →" : "Coming soon";
-    return <button key={unit.id} className="unit-card" disabled={!unit.available || waiting} onClick={() => unit.href ? location.assign(unit.href) : go("home")}><span className="unit-number">{unit.number || String(index + 1).padStart(2, "0")}</span><span className="unit-copy"><small>{unit.subtitle}</small><strong>{unit.title}</strong><span>{unit.description}</span><span className="unit-progress">{unit.id === "street-style" ? `${progress.done} of ${progress.total} challenges done` : ""}</span></span><span className="unit-action">{action}</span></button>;
+    return <button key={unit.id} className="unit-card" data-learning-status={status} disabled={!unit.available || waiting} onClick={() => unit.href ? location.assign(unit.href) : go("home")}><span className="unit-number">{unit.number || String(index + 1).padStart(2, "0")}</span><span className="unit-copy"><small>{unit.subtitle}</small><strong>{unit.title}</strong><span>{unit.description}</span><span className="unit-progress">{unit.id === "street-style" ? `${progress.done} of ${progress.total} challenges done` : ""}</span>{statusLabel[status] && <small className="learning-status-label">{statusLabel[status]}</small>}</span><span className="unit-action">{action}</span></button>;
   })}
     </div></section><p className="catalog-footer">Your next unit will appear here when it is ready.</p></>;
 }
@@ -58,7 +80,8 @@ function Home({ controller: c, snapshot: s }) {
   return <><button className="back-button" id="catalogButton" onClick={() => go("catalog")}>← All units</button><section className="hero" aria-labelledby="homeTitle"><div className="hero-copy"><h1 id="homeTitle">Wear the words.<br /><span>Own the week.</span></h1><p>Complete one 20 to 25 minute mission each day. {connected ? "Your tutor receives your results privately." : "Your work stays on this device."}</p></div><div className="week-pass" aria-label="Weekly progress"><div className="pass-row"><span>ACCESS</span><strong>ALL AREAS</strong></div><div className="pass-code">WEEK / 01</div><div className="progress-copy"><strong id="overallLabel">Route complete</strong><span id="overallPercent">{progress.pct}%</span></div><div className="progress-track"><span id="overallBar" style={{ transform: `scaleX(${progress.pct / 100})` }} /></div><div className="pass-name">SPEAK / WRITE / REMEMBER</div></div></section><PreviewPanel snapshot={s} />
     <section className="route-section" aria-labelledby="routeTitle"><div className="section-heading"><div><p className="section-note">Weekly call sheet</p><h2 id="routeTitle">Your seven fittings</h2></div></div><div className="day-grid" id="dayGrid">{c.data.days.map((day, index) => {
     const saved = s.state.days[day.id], done = Boolean(saved?.complete), seen = daySeen(day, s.state, s.evidence), mistakes = (saved?.answers || []).filter((answer) => answer.correct === false).length;
-    return <article key={day.id} className={`day-card ${done ? "done" : ""}`}><button className="day-open" onClick={() => go(`day-${index + 1}`)}><span className="day-number">{String(index + 1).padStart(2, "0")}</span><h3>{day.title}</h3><p>{day.short}</p></button><div className="day-actions"><span className="day-status">{done ? "Completed" : seen ? `${seen} of ${day.questions.length} done` : index === next ? "Ready to start" : "Not started"}</span>{(done || index === next || mistakes > 0 || seen >= day.questions.length) && <button className="day-retry" onClick={() => go(`${!done && !mistakes ? "day" : "review"}-${index + 1}`)}>{done ? "Try again" : index === next ? "Start" : "Run for a score"} <span aria-hidden="true">→</span></button>}</div></article>;
+    const status = dayStatus(saved, s.restored || s.preview, seen);
+    return <article key={day.id} className={`day-card ${done ? "done" : ""}`}><button className="day-open" data-learning-status={status} onClick={() => go(`day-${index + 1}`)}><span className="day-number">{String(index + 1).padStart(2, "0")}</span><h3>{day.title}</h3><p>{day.short}</p>{statusLabel[status] && <span className="learning-status-label">{statusLabel[status]}</span>}</button><div className="day-actions"><span className="day-status">{done ? "Completed" : status === 'in-progress' ? `Finish this${seen ? ` · ${seen} of ${day.questions.length} done` : ''}` : statusLabel[status] || 'Loading progress…'}</span>{(done || index === next || mistakes > 0 || seen >= day.questions.length) && <button className="day-retry" data-learning-status={status} onClick={() => go(`${!done && !mistakes ? "day" : "review"}-${index + 1}`)}>{done ? "Try again" : index === next ? status === 'in-progress' ? 'Continue' : "Start" : "Run for a score"} <span aria-hidden="true">→</span></button>}</div></article>;
   })}</div></section>
     <section className="badge-section"><div className="section-heading"><div><p className="section-note">Proof of practice</p><h2>Patch rail</h2></div></div><div className="badge-grid" id="badgeGrid">{c.data.badges.map((badge) => {
     const earned = s.state.badges.includes(badge.id);

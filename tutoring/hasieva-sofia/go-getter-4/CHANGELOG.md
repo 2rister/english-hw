@@ -1,5 +1,12 @@
 # Changelog — Хасиева Софья · Go Getter 4 Mini App
 
+## 2026-10-25 — Learning button progress colours
+
+- Orange buttons identify started, unfinished work; red buttons identify work not started. Completed work keeps its existing styling, and unavailable/unknown progress stays neutral.
+- Applied status labels and colours to catalog units, Street Style missions, Grammar theory/flight and Vocab practice. Catalog reads only the current profile and refreshes after existing entry sync.
+- Reused existing progress stores; added no learner records, backend changes, dependencies or notifications. Distinct-word/session checks keep guided stories and independent dictation separate.
+- Verified: 61 logic tests; eight WebKit iPhone cases at 320/402px; catalog, Grammar learning-path, full React module workflows and 51-event story regression. Public deployment and physical-device receipt are recorded separately.
+
 ## 2026-10-11 — Grammar Snack native WebView recovery
 
 - Prevent a blank Telegram/WebKit screen when `crypto`, `structuredClone`, or a mixed cached asset version is unavailable.

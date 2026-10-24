@@ -27,6 +27,7 @@ export function mountEntrySync({controller, tutoring, storage, request = fetch, 
       tutoring.entrySyncPending=results.some(result=>result.status!=='fulfilled'||result.value!==true);
       if (tutoring.entrySyncPending && retries++ < 3) retryTimer=clock.setTimeout(run,30000);
       tutoring.setStatus(tutoring.entrySyncPending?'Saved on this device · some results are waiting to sync. We will retry when you reconnect.':'All saved results confirmed by the server.');
+      events.dispatchEvent?.(new Event('learning-progress-ready'));
     }).finally(()=>{active=null;});
     return active;
   }
