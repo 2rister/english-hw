@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createGrammarController } from "./grammar-controller.mjs";
 import { theory, choices, strip } from "./grammar-data.mjs";
+import { taskStatus, statusLabel } from './learning-status.mjs';
 function Response({ item, answer, disabled }) {
   const [value, setValue] = useState(""), options = choices(item);
   return options ? <div className="choice-list">{options.map((option) => <button key={option} className="secondary choice" disabled={disabled} onClick={() => answer(option)}>{option}</button>)}</div> : <form onSubmit={(event) => {
@@ -15,6 +16,9 @@ function GrammarPath({ s, open }) {
   const state=s.state, current=state.current, history=state.history||[], best=history.length?Math.max(...history.map(attempt=>attempt.score||0)):null;
   const preview = Boolean(window.TUTORING?.preview), personal = Boolean(window.TUTORING?.authenticated) && !preview;
   const step=state.theoryDone?theory.length:Math.min(state.theoryStep||0,theory.length), passed=best!==null&&best>=90;
+  const known = !s.error, learning = taskStatus(state.theoryDone, step > 0 || current?.phase === 'theory', known);
+  const activeMission = current?.variantId && !current.complete;
+  const flight = taskStatus(history.length > 0 && !activeMission, activeMission, known);
   return <section className="snack-card grammar-path" aria-label="Grammar learning path">
     <p className="snack-kicker">{preview ? "Sonya’s profile · Read-only preview" : personal ? "Sonya’s profile" : "Device-only practice"} · Grammar Snack · Topic 01</p><h1>Present Simple<br/><span>vs Present Continuous</span></h1>
     {!personal&&!preview&&<aside className="privacy-note" aria-label="Practice profile"><div><strong>Practice on this device</strong><p>This map shows this browser’s progress. It is not Sonya’s personal saved progress.</p><a href="../tutoring/#catalog">Connect Sonya’s profile: browser and Telegram instructions →</a></div></aside>}
@@ -23,8 +27,8 @@ function GrammarPath({ s, open }) {
     <ol className="grammar-stages">
       <li data-status={state.theoryDone?'done':'current'}><span className="snack-kicker">01 · {state.theoryDone?'Completed':'Available now'}</span><h2>Learn the rules</h2><p>{step} of {theory.length} quick checks completed</p>
         <ol className="grammar-checks">{theory.map((item,index)=><li key={item.title}><span>{item.title}</span><strong>{index<step?'Done':index===step?'Next':'Locked'}</strong></li>)}</ol>
-        {!state.theoryDone&&<button className="primary" onClick={()=>open(false)}>{step?'Continue learning':'Start learning'}</button>}</li>
-      <li data-status={!state.theoryDone?'locked':history.length?'done':'current'}><span className="snack-kicker">02 · {!state.theoryDone?'Locked':history.length?'Completed':'Available now'}</span><h2>Grammar Orbit</h2><p>{!state.theoryDone?'Complete all five rule checks to unlock your flight.':current?.variantId&&!current.complete?`${current.index} of 20 sectors completed. Resume your mission.`:'20 sectors · 20 seconds to choose each course'}</p><button className="primary" disabled={!state.theoryDone} onClick={()=>open(true)}>{!state.theoryDone?'Flight locked':current?.variantId&&!current.complete?'Resume mission':history.length?'Fly again':'Start mission'}</button></li>
+        {!state.theoryDone&&<><p className="learning-status-label">{statusLabel[learning]}</p><button className="primary" data-learning-status={learning} onClick={()=>open(false)}>{step?'Continue learning':'Start learning'}</button></>}</li>
+      <li data-status={!state.theoryDone?'locked':activeMission?'current':history.length?'done':'current'}><span className="snack-kicker">02 · {!state.theoryDone?'Locked':activeMission?'Finish this':history.length?'Completed':'Available now'}</span><h2>Grammar Orbit</h2><p>{!state.theoryDone?'Complete all five rule checks to unlock your flight.':current?.variantId&&!current.complete?`${current.index} of 20 sectors completed. Resume your mission.`:'20 sectors · 20 seconds to choose each course'}</p>{state.theoryDone&&statusLabel[flight]&&<p className="learning-status-label">{statusLabel[flight]}</p>}<button className="primary" data-learning-status={state.theoryDone ? flight : undefined} disabled={!state.theoryDone} onClick={()=>open(true)}>{!state.theoryDone?'Flight locked':current?.variantId&&!current.complete?'Resume mission':history.length?'Fly again':'Start mission'}</button></li>
       <li data-status={passed?'done':history.length?'current':'locked'}><span className="snack-kicker">03 · {passed?'Completed':history.length?'Keep practising':'Locked'}</span><h2>Topic mastery</h2><p>{best===null?'Finish a mission to reveal your result.':`Best first-try score: ${best}% · Target: 90%`}</p><p>{history.length} completed {history.length===1?'mission':'missions'}</p>{history.length>0&&<ul>{history.slice(-5).reverse().map(attempt=><li key={attempt.id}>Mission {attempt.variantId} · {attempt.score}%</li>)}</ul>}</li>
     </ol><a href="../tutoring/#catalog">← All learning</a>
   </section>;

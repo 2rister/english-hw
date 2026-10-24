@@ -1,5 +1,19 @@
 /* Shared feedback for the personal tutoring app. */
 :root { --interaction-ease: cubic-bezier(.23,1,.32,1); }
+button[data-learning-status="in-progress"]:not(:disabled) {
+  background: #fff0d9;
+  border-color: #c76c0e;
+  color: #6b3500;
+  box-shadow: inset 4px 0 #c76c0e;
+}
+button[data-learning-status="not-started"]:not(:disabled) {
+  background: #fff0f0;
+  border-color: #db4d5a;
+  color: #9d1c28;
+  box-shadow: inset 4px 0 #db4d5a;
+}
+button:is([data-learning-status="in-progress"], [data-learning-status="not-started"]):not(:disabled) :is(strong, h3, .unit-action) { color: inherit; }
+.learning-status-label { display: block; margin-top: 8px; font-size: 12px; font-weight: 700; line-height: 1.4; }
 :where(button, .back-button, .vocab-home-link):not(:disabled) {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
